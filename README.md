@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Crew Management System</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     body { font-family: Arial; margin:40px; background:#f4f6f8; }
     .card { background:white; padding:20px; margin-bottom:20px; border-radius:8px; }
     button { padding:8px 14px; cursor:pointer; }
-    input, select { padding:6px; margin:5px 0; width:100%; }
+    input { padding:6px; margin:5px 0; width:100%; }
     table { width:100%; border-collapse: collapse; margin-top:10px; }
     th, td { border:1px solid #ddd; padding:8px; }
     th { background:#eee; }
@@ -32,7 +32,7 @@
   <table>
     <thead>
       <tr>
-        <th>ID</th>
+        <th>Internal ID</th>
         <th>Name</th>
         <th>Rank</th>
       </tr>
@@ -42,7 +42,9 @@
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
+const { createClient } = supabase
+
+const client = createClient(
   "https://kjtigzaevodgpdtndyqs.supabase.co",
   "sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE"
 )
@@ -52,7 +54,7 @@ async function addSeafarer() {
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
 
-  const { error } = await supabase
+  const { error } = await client
     .from("seafarers")
     .insert([{ internal_id, name, rank }])
 
@@ -65,7 +67,7 @@ async function addSeafarer() {
 }
 
 async function loadSeafarers() {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("seafarers")
     .select("*")
 
@@ -87,6 +89,8 @@ async function loadSeafarers() {
     `
   })
 }
+
+loadSeafarers()
 </script>
 
 </body>
