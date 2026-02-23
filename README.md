@@ -119,9 +119,9 @@ async function addAppraisal() {
 
   const { error } = await client.from("appraisals").insert([{
     seafarer_id,
-    issue_date: date,       // правильное имя колонки
-    rating: score,          // правильное имя колонки
-    text_comment: comments  // правильное имя колонки
+    issue_date: date,
+    rating: score,
+    text_comment: comments    // <- используем именно text_comment
   }])
 
   if(error) return alert("Error: "+error.message)
