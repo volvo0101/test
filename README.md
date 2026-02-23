@@ -42,15 +42,6 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <div class="card">
-<h3>Add Appraisal</h3>
-<select id="appSeafarer"></select>
-<input type="date" id="appDate">
-<input id="appScore" placeholder="Score">
-<input id="appComments" placeholder="Comment">
-<button onclick="addAppraisal()">Add Appraisal</button>
-</div>
-
-<div class="card">
 <h3>Upload PDF</h3>
 <select id="docSeafarer"></select>
 <select id="docType">
@@ -110,22 +101,6 @@ async function addSeafarer() {
     if(error) return alert(error.message)
     loadAll()
   }
-
-async function addAppraisal() {
-  const seafarer_id = parseInt(document.getElementById("appSeafarer").value);
-  const date = document.getElementById("appDate").value;
-  const score = parseInt(document.getElementById("appScore").value);
-
-  const { data, error } = await client.from("appraisals").insert([{
-    seafarer_id,
-    issue_date: date,
-    rating: score
-  }]);
-
-  if(error) return alert("Error: " + error.message);
-
-  loadAll();  // твоя функция обновления таблицы
-}
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
