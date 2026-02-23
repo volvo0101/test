@@ -10,7 +10,7 @@ body { font-family: Arial; margin:40px; background:#f4f6f8; }
 button { padding:8px 14px; cursor:pointer; margin-top:5px; }
 input, select { padding:6px; margin:5px 0; width:100%; }
 table { width:100%; border-collapse: collapse; margin-top:10px; }
-th, td { border:1px solid #ddd; padding:8px; }
+th, td { border:1px solid #ddd; padding:8px; vertical-align: top; }
 th { background:#eee; }
 a { text-decoration:none; color:blue; }
 </style>
@@ -74,7 +74,6 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <script>
-
 const { createClient } = supabase
 
 const client = createClient(
@@ -83,116 +82,109 @@ const client = createClient(
 )
 
 async function addSeafarer() {
-const internal_id = document.getElementById("internal_id").value
-const name = document.getElementById("name").value
-const rank = document.getElementById("rank").value
+  const internal_id = document.getElementById("internal_id").value
+  const name = document.getElementById("name").value
+  const rank = document.getElementById("rank").value
 
-await client.from("seafarers").insert([{ internal_id, name, rank }])
-loadAll()
+  const { error } = await client.from("seafarers").insert([{ internal_id, name, rank }])
+  if(error) return alert("Error: "+error.message)
+  loadAll()
 }
 
 async function addInterview() {
-const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
-const date = document.getElementById("intDate").value
-const decision = document.getElementById("intResult").value
-const text_comment = document.getElementById("intComments").value
+  const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
+  const date = document.getElementById("intDate").value
+  const decision = document.getElementById("intResult").value
+  const comment = document.getElementById("intComments").value
 
-await client.from("interviews")
-.insert([{ seafarer_id, date, decision, text_comment }])
-
-loadAll()
+  const { error } = await client.from("interviews")
+    .insert([{ seafarer_id, date, decision, comment }])
+  if(error) return alert("Error: "+error.message)
+  loadAll()
 }
 
 async function addAppraisal() {
-const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
-const date = document.getElementById("appDate").value
-const score = document.getElementById("appScore").value
-const comments = document.getElementById("appComments").value
+  const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
+  const date = document.getElementById("appDate").value
+  const score = document.getElementById("appScore").value
+  const comments = document.getElementById("appComments").value
 
-await client.from("appraisals")
-.insert([{ seafarer_id, date, score, comments }])
-
-loadAll()
+  const { error } = await client.from("appraisals")
+    .insert([{ seafarer_id, date, score, comments }])
+  if(error) return alert("Error: "+error.message)
+  loadAll()
 }
 
 async function uploadDocument() {
-const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
-const file = document.getElementById("fileInput").files[0]
-const doc_type = document.getElementById("docType").value
+  const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
+  const file = document.getElementById("fileInput").files[0]
+  const doc_type = document.getElementById("docType").value
+  if (!file) return alert("Select file")
 
-if (!file) return alert("Select file")
+  const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
+  const { error: uploadError } = await client.storage.from("crew-documents").upload(filePath, file)
+  if(uploadError) return alert("Upload error: "+uploadError.message)
 
-const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
-
-await client.storage.from("crew-documents")
-.upload(filePath, file)
-
-const publicUrl = client.storage
-.from("crew-documents")
-.getPublicUrl(filePath).data.publicUrl
-
-await client.from("documents")
-.insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
-
-loadAll()
+  const { data: { publicUrl } } = client.storage.from("crew-documents").getPublicUrl(filePath)
+  const { error: insertError } = await client.from("documents")
+    .insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
+  if(insertError) return alert("DB error: "+insertError.message)
+  
+  loadAll()
 }
 
 async function loadAll() {
+  const { data: seafarers } = await client.from("seafarers").select("*")
+  const { data: interviews } = await client.from("interviews").select("*")
+  const { data: appraisals } = await client.from("appraisals").select("*")
+  const { data: documents } = await client.from("documents").select("*")
 
-const { data: seafarers } = await client.from("seafarers").select("*")
-const { data: interviews } = await client.from("interviews").select("*")
-const { data: appraisals } = await client.from("appraisals").select("*")
-const { data: documents } = await client.from("documents").select("*")
+  const safeSeafarers = seafarers || []
+  const safeInterviews = interviews || []
+  const safeAppraisals = appraisals || []
+  const safeDocuments = documents || []
 
-const safeSeafarers = seafarers || []
-const safeInterviews = interviews || []
-const safeAppraisals = appraisals || []
-const safeDocuments = documents || []
+  const table = document.getElementById("crewTable")
+  table.innerHTML = ""
 
-const table = document.getElementById("crewTable")
-table.innerHTML = ""
+  const selects = ["intSeafarer","appSeafarer","docSeafarer"]
+  selects.forEach(id => {
+    const sel = document.getElementById(id)
+    sel.innerHTML = ""
+    safeSeafarers.forEach(s=>{
+      sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
+    })
+  })
 
-const selects = ["intSeafarer","appSeafarer","docSeafarer"]
+  safeSeafarers.forEach(s=>{
+    const intList = safeInterviews
+      .filter(i=>i.seafarer_id==s.id)
+      .map(i=>`${i.date} (${i.decision})`)
+      .join("<br>") || "-"
 
-selects.forEach(id => {
-const sel = document.getElementById(id)
-sel.innerHTML = ""
-safeSeafarers.forEach(s=>{
-sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
-})
-})
+    const appList = safeAppraisals
+      .filter(a=>a.seafarer_id==s.id)
+      .map(a=>`${a.date} (Score: ${a.score})`)
+      .join("<br>") || "-"
 
-safeSeafarers.forEach(s=>{
+    const docList = safeDocuments
+      .filter(d=>d.seafarer_id==s.id)
+      .map(d=>`<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
+      .join("<br>") || "-"
 
-const intList = safeInterviews
-.filter(i=>i.seafarer_id==s.id)
-.map(i=>`${i.date} (${i.decision})`)
-.join("<br>") || "-"
-
-const appList = safeAppraisals
-.filter(a=>a.seafarer_id==s.id)
-.map(a=>`${a.date} (Score: ${a.score})`)
-.join("<br>") || "-"
-
-const docList = safeDocuments
-.filter(d=>d.seafarer_id==s.id)
-.map(d=>`<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
-.join("<br>") || "-"
-
-table.innerHTML += `
-<tr>
-<td>${s.name}</td>
-<td>${s.rank}</td>
-<td>${intList}</td>
-<td>${appList}</td>
-<td>${docList}</td>
-</tr>
-`
-})
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.rank}</td>
+        <td>${intList}</td>
+        <td>${appList}</td>
+        <td>${docList}</td>
+      </tr>
+    `
+  })
 }
 
 loadAll()
-
 </script>
 </body>
 </html>
