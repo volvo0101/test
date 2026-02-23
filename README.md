@@ -111,10 +111,10 @@ async function addSeafarer() {
     loadAll()
   }
 
-async function addAppraisalTest() {
-  const seafarer_id = 1;   // пример
-  const date = '2026-02-23';
-  const score = 5;
+async function addAppraisal() {
+  const seafarer_id = parseInt(document.getElementById("appSeafarer").value);
+  const date = document.getElementById("appDate").value;
+  const score = parseInt(document.getElementById("appScore").value);
 
   const { data, error } = await client.from("appraisals").insert([{
     seafarer_id,
@@ -122,20 +122,10 @@ async function addAppraisalTest() {
     rating: score
   }]);
 
-  if(error) return console.error("Error:", error.message);
+  if(error) return alert("Error: " + error.message);
 
-  console.log("Inserted:", data);
-
-  // select
-  const { data: rows, error: selectError } = await client.from("appraisals")
-    .select("id,seafarer_id,issue_date,rating");
-
-  if(selectError) return console.error("Error select:", selectError.message);
-  console.log("All rows:", rows);
+  loadAll();  // твоя функция обновления таблицы
 }
-
-// вызываем функцию
-addAppraisalTest();
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
