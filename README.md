@@ -111,18 +111,31 @@ async function addSeafarer() {
     loadAll()
   }
 
-// insert без комментариев
-await client.from("appraisals").insert([{
-  seafarer_id,
-  issue_date: date,
-  rating: score,
-  pdf_path: pdfPath,        // если у тебя есть pdf
-  uploaded_by_user_id: userId
-}]);
+async function addAppraisalTest() {
+  const seafarer_id = 1;   // пример
+  const date = '2026-02-23';
+  const score = 5;
 
-// select без комментариев
-await client.from("appraisals")
-  .select("id,seafarer_id,issue_date,rating,pdf_path,uploaded_by_user_id");
+  const { data, error } = await client.from("appraisals").insert([{
+    seafarer_id,
+    issue_date: date,
+    rating: score
+  }]);
+
+  if(error) return console.error("Error:", error.message);
+
+  console.log("Inserted:", data);
+
+  // select
+  const { data: rows, error: selectError } = await client.from("appraisals")
+    .select("id,seafarer_id,issue_date,rating");
+
+  if(selectError) return console.error("Error select:", selectError.message);
+  console.log("All rows:", rows);
+}
+
+// вызываем функцию
+addAppraisalTest();
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
