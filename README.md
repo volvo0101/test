@@ -114,16 +114,17 @@ async function addSeafarer() {
 async function addAppraisal() {
   const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
   const date = document.getElementById("appDate").value
-  const score = document.getElementById("appScore").value
+  const score = parseInt(document.getElementById("appScore").value)
   const comments = document.getElementById("appComments").value
 
-  // Отправляем данные с правильным именем колонки
-  await client.from("appraisals").insert([{
+  const { error } = await client.from("appraisals").insert([{
     seafarer_id,
-    issue_date: date,         // вместо date
-    rating: score,            // вместо score
-    text_comment: comments    // вот тут важное исправление
+    issue_date: date,       // правильное имя колонки
+    rating: score,          // правильное имя колонки
+    text_comment: comments  // правильное имя колонки
   }])
+
+  if(error) return alert("Error: "+error.message)
 
   loadAll()
 }
