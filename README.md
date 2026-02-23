@@ -103,19 +103,30 @@ async function addInterview() {
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
-  const file = document.getElementById("fileInput").files[0]
+  const files = document.getElementById("fileInput").files
   const doc_type = document.getElementById("docType").value
-  if (!file) return alert("Select file")
+  if (!seafarer_id || files.length === 0) return alert("Select seafarer and file(s)")
 
-  const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
-  const { error: uploadError } = await client.storage.from("crew-documents").upload(filePath, file)
-  if(uploadError) return alert("Upload error: "+(uploadError.message || JSON.stringify(uploadError)))
+  for (let file of files) {
+    const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
 
-  const { data: { publicUrl } } = client.storage.from("crew-documents").getPublicUrl(filePath)
-  const { error: insertError } = await client.from("documents")
-    .insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
-  if(insertError) return alert("DB error: "+(insertError.message || JSON.stringify(insertError)))
-  
+    // Загружаем PDF в Storage
+    const { error: uploadError } = await client.storage
+      .from("crew-documents")
+      .upload(filePath, file)
+    if (uploadError) return alert("Upload error: " + uploadError.message)
+
+    // Получаем публичный URL
+    const { data: { publicUrl } } = client.storage
+      .from("crew-documents")
+      .getPublicUrl(filePath)
+
+    // Вставляем запись в таблицу documents
+    const { error: insertError } = await client.from("documents")
+      .insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
+    if (insertError) return alert("DB error: " + insertError.message)
+  }
+
   loadAll()
 }
 
