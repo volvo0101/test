@@ -102,7 +102,12 @@ const result = document.getElementById("intResult").value
 const comments = document.getElementById("intComments").value
 
 await client.from("interviews")
-.insert([{ seafarer_id, date, result, comments }])
+.insert([{
+  seafarer_id,
+  date,
+  decision: result,
+  text_comment: comments
+}])
 
 loadAll()
 }
