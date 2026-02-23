@@ -28,12 +28,17 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <div class="card">
-<h3>Add Interview</h3>
-<select id="intSeafarer"></select>
-<input type="date" id="intDate">
-<input id="intResult" placeholder="Decision">
-<input id="intComments" placeholder="Comment">
-<button onclick="addInterview()">Add Interview</button>
+  <h3>Add Interview</h3>
+  <select id="intSeafarer"></select>
+  <input type="date" id="intDate">
+  <select id="intResult">
+    <option value="">Select decision</option>
+    <option value="Approved">Approved</option>
+    <option value="Standby">Standby</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+  <input id="intComments" placeholder="Comment">
+  <button onclick="addInterview()">Add Interview</button>
 </div>
 
 <div class="card">
@@ -91,17 +96,20 @@ async function addSeafarer() {
   loadAll()
 }
 
-async function addInterview() {
-  const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
-  const date = document.getElementById("intDate").value
-  const decision = document.getElementById("intResult").value
-  const comment = document.getElementById("intComments").value
+  async function addInterview() {
+    const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
+    const date = document.getElementById("intDate").value
+    const decision = document.getElementById("intResult").value
+    const comment = document.getElementById("intComments").value
 
-  const { error } = await client.from("interviews")
-    .insert([{ seafarer_id, date, decision, comment }])
-  if(error) return alert("Error: "+error.message)
-  loadAll()
-}
+    if(!date) return alert("Please select a date")
+    const validDecisions = ["Approved","Standby","Rejected"]
+    if(!validDecisions.includes(decision)) return alert("Decision must be Approved, Standby, or Rejected")
+
+    const { error } = await client.from("interviews").insert([{ seafarer_id, date, decision, comment }])
+    if(error) return alert(error.message)
+    loadAll()
+  }
 
 async function addAppraisal() {
   const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
