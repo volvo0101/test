@@ -117,9 +117,14 @@ async function addAppraisal() {
   const score = document.getElementById("appScore").value
   const comments = document.getElementById("appComments").value
 
-  const { error } = await client.from("appraisals")
-    .insert([{ seafarer_id, date, score, comments }])
-  if(error) return alert("Error: "+error.message)
+  // Отправляем данные с правильным именем колонки
+  await client.from("appraisals").insert([{
+    seafarer_id,
+    issue_date: date,         // вместо date
+    rating: score,            // вместо score
+    text_comment: comments    // вот тут важное исправление
+  }])
+
   loadAll()
 }
 
