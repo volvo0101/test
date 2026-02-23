@@ -61,7 +61,6 @@ a { text-decoration:none; color:blue; }
 <th>Name</th>
 <th>Rank</th>
 <th>Interviews</th>
-<th>Appraisals</th>
 <th>Documents</th>
 </tr>
 </thead>
@@ -83,24 +82,24 @@ async function addSeafarer() {
   const rank = document.getElementById("rank").value
 
   const { error } = await client.from("seafarers").insert([{ internal_id, name, rank }])
-  if(error) return alert("Error: "+error.message)
+  if(error) return alert("Error: " + (error.message || JSON.stringify(error)))
   loadAll()
 }
 
-  async function addInterview() {
-    const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
-    const date = document.getElementById("intDate").value
-    const decision = document.getElementById("intResult").value
-    const comment = document.getElementById("intComments").value
+async function addInterview() {
+  const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
+  const date = document.getElementById("intDate").value
+  const decision = document.getElementById("intResult").value
+  const comment = document.getElementById("intComments").value
 
-    if(!date) return alert("Please select a date")
-    const validDecisions = ["Approved","Standby","Rejected"]
-    if(!validDecisions.includes(decision)) return alert("Decision must be Approved, Standby, or Rejected")
+  if(!date) return alert("Please select a date")
+  const validDecisions = ["Approved","Standby","Rejected"]
+  if(!validDecisions.includes(decision)) return alert("Decision must be Approved, Standby, or Rejected")
 
-    const { error } = await client.from("interviews").insert([{ seafarer_id, date, decision, comment }])
-    if(error) return alert(error.message)
-    loadAll()
-  }
+  const { error } = await client.from("interviews").insert([{ seafarer_id, date, decision, text_comment: comment }])
+  if(error) return alert("Error: " + (error.message || JSON.stringify(error)))
+  loadAll()
+}
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
@@ -110,12 +109,12 @@ async function uploadDocument() {
 
   const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
   const { error: uploadError } = await client.storage.from("crew-documents").upload(filePath, file)
-  if(uploadError) return alert("Upload error: "+uploadError.message)
+  if(uploadError) return alert("Upload error: "+(uploadError.message || JSON.stringify(uploadError)))
 
   const { data: { publicUrl } } = client.storage.from("crew-documents").getPublicUrl(filePath)
   const { error: insertError } = await client.from("documents")
     .insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
-  if(insertError) return alert("DB error: "+insertError.message)
+  if(insertError) return alert("DB error: "+(insertError.message || JSON.stringify(insertError)))
   
   loadAll()
 }
@@ -123,18 +122,16 @@ async function uploadDocument() {
 async function loadAll() {
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
-  const { data: appraisals } = await client.from("appraisals").select("*")
   const { data: documents } = await client.from("documents").select("*")
 
   const safeSeafarers = seafarers || []
   const safeInterviews = interviews || []
-  const safeAppraisals = appraisals || []
   const safeDocuments = documents || []
 
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  const selects = ["intSeafarer","appSeafarer","docSeafarer"]
+  const selects = ["intSeafarer","docSeafarer"]
   selects.forEach(id => {
     const sel = document.getElementById(id)
     sel.innerHTML = ""
@@ -149,11 +146,6 @@ async function loadAll() {
       .map(i=>`${i.date} (${i.decision})`)
       .join("<br>") || "-"
 
-    const appList = safeAppraisals
-      .filter(a=>a.seafarer_id==s.id)
-      .map(a=>`${a.date} (Score: ${a.score})`)
-      .join("<br>") || "-"
-
     const docList = safeDocuments
       .filter(d=>d.seafarer_id==s.id)
       .map(d=>`<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
@@ -164,7 +156,6 @@ async function loadAll() {
         <td>${s.name}</td>
         <td>${s.rank}</td>
         <td>${intList}</td>
-        <td>${appList}</td>
         <td>${docList}</td>
       </tr>
     `
