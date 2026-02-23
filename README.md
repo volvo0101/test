@@ -83,7 +83,7 @@ const { createClient } = supabase
 
 const client = createClient(
 "https://kjtigzaevodgpdtndyqs.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqdGlnemFldm9kZ3BkdG5keXFzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTQ0Mzg4NiwiZXhwIjoyMDg3MDE5ODg2fQ.t9orAV6ns-Hw6bREaZm2U-4AgPEcv5VMvesWNqDoJkc"
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqdGlnemFldm9kZ3BkdG5keXFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDM4ODYsImV4cCI6MjA4NzAxOTg4Nn0.BPplMY0kDi5Ub8ooaPaeVVp3c2Qf6RErg1QW4ISWaJo"
 )
 
 async function addSeafarer() {
