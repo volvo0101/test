@@ -96,20 +96,28 @@ loadAll()
 }
 
 async function addInterview() {
-const seafarer_id = document.getElementById("intSeafarer").value
-const date = document.getElementById("intDate").value
-const result = document.getElementById("intResult").value
-const comments = document.getElementById("intComments").value
 
-await client.from("interviews")
-.insert([{
-  seafarer_id,
-  date,
-  decision: result,
-  text_comment: comments
-}])
+  const seafarer_id = document.getElementById("intSeafarer").value
+  const date = document.getElementById("intDate").value
+  const result = document.getElementById("intResult").value
+  const comments = document.getElementById("intComments").value
 
-loadAll()
+  console.log("DEBUG:", {
+    seafarer_id,
+    date,
+    decision: result,
+    text_comment: comments
+  })
+
+  await client.from("interviews")
+  .insert([{
+    seafarer_id,
+    date,
+    decision: result,
+    text_comment: comments
+  }])
+
+  loadAll()
 }
 
 async function addAppraisal() {
