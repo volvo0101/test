@@ -19,7 +19,6 @@ a { text-decoration:none; color:blue; }
 
 <h2>⚓ Crew Management System</h2>
 
-<!-- ADD SEAFARER -->
 <div class="card">
 <h3>Add Seafarer</h3>
 <input id="internal_id" placeholder="Internal ID">
@@ -28,27 +27,24 @@ a { text-decoration:none; color:blue; }
 <button onclick="addSeafarer()">Add</button>
 </div>
 
-<!-- INTERVIEW -->
 <div class="card">
 <h3>Add Interview</h3>
 <select id="intSeafarer"></select>
 <input type="date" id="intDate">
-<input id="intResult" placeholder="Result">
-<input id="intComments" placeholder="Comments">
+<input id="intResult" placeholder="Decision">
+<input id="intComments" placeholder="Comment">
 <button onclick="addInterview()">Add Interview</button>
 </div>
 
-<!-- APPRAISAL -->
 <div class="card">
 <h3>Add Appraisal</h3>
 <select id="appSeafarer"></select>
 <input type="date" id="appDate">
 <input id="appScore" placeholder="Score">
-<input id="appComments" placeholder="Comments">
+<input id="appComments" placeholder="Comment">
 <button onclick="addAppraisal()">Add Appraisal</button>
 </div>
 
-<!-- UPLOAD DOCUMENT -->
 <div class="card">
 <h3>Upload PDF</h3>
 <select id="docSeafarer"></select>
@@ -60,9 +56,8 @@ a { text-decoration:none; color:blue; }
 <button onclick="uploadDocument()">Upload</button>
 </div>
 
-<!-- LIST -->
 <div class="card">
-<h3>Seafarers</h3>
+<h3>Crew List</h3>
 <button onclick="loadAll()">Refresh</button>
 <table>
 <thead>
@@ -79,6 +74,7 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <script>
+
 const { createClient } = supabase
 
 const client = createClient(
@@ -96,32 +92,19 @@ loadAll()
 }
 
 async function addInterview() {
+const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
+const date = document.getElementById("intDate").value
+const decision = document.getElementById("intResult").value
+const text_comment = document.getElementById("intComments").value
 
-  const seafarer_id = document.getElementById("intSeafarer").value
-  const date = document.getElementById("intDate").value
-  const result = document.getElementById("intResult").value
-  const comments = document.getElementById("intComments").value
+await client.from("interviews")
+.insert([{ seafarer_id, date, decision, text_comment }])
 
-  console.log("DEBUG:", {
-    seafarer_id,
-    date,
-    decision: result,
-    text_comment: comments
-  })
-
-  await client.from("interviews")
-  .insert([{
-    seafarer_id,
-    date,
-    decision: result,
-    text_comment: comments
-  }])
-
-  loadAll()
+loadAll()
 }
 
 async function addAppraisal() {
-const seafarer_id = document.getElementById("appSeafarer").value
+const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
 const date = document.getElementById("appDate").value
 const score = document.getElementById("appScore").value
 const comments = document.getElementById("appComments").value
@@ -133,7 +116,7 @@ loadAll()
 }
 
 async function uploadDocument() {
-const seafarer_id = document.getElementById("docSeafarer").value
+const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
 const file = document.getElementById("fileInput").files[0]
 const doc_type = document.getElementById("docType").value
 
@@ -161,6 +144,11 @@ const { data: interviews } = await client.from("interviews").select("*")
 const { data: appraisals } = await client.from("appraisals").select("*")
 const { data: documents } = await client.from("documents").select("*")
 
+const safeSeafarers = seafarers || []
+const safeInterviews = interviews || []
+const safeAppraisals = appraisals || []
+const safeDocuments = documents || []
+
 const table = document.getElementById("crewTable")
 table.innerHTML = ""
 
@@ -169,24 +157,24 @@ const selects = ["intSeafarer","appSeafarer","docSeafarer"]
 selects.forEach(id => {
 const sel = document.getElementById(id)
 sel.innerHTML = ""
-seafarers.forEach(s=>{
+safeSeafarers.forEach(s=>{
 sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
 })
 })
 
-seafarers.forEach(s=>{
+safeSeafarers.forEach(s=>{
 
-const intList = interviews
+const intList = safeInterviews
 .filter(i=>i.seafarer_id==s.id)
-.map(i=>`${i.date} (${i.result})`)
+.map(i=>`${i.date} (${i.decision})`)
 .join("<br>") || "-"
 
-const appList = appraisals
+const appList = safeAppraisals
 .filter(a=>a.seafarer_id==s.id)
 .map(a=>`${a.date} (Score: ${a.score})`)
 .join("<br>") || "-"
 
-const docList = documents
+const docList = safeDocuments
 .filter(d=>d.seafarer_id==s.id)
 .map(d=>`<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
 .join("<br>") || "-"
@@ -204,7 +192,7 @@ table.innerHTML += `
 }
 
 loadAll()
-</script>
 
+</script>
 </body>
 </html>
