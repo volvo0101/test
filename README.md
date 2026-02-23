@@ -82,8 +82,8 @@ a { text-decoration:none; color:blue; }
 const { createClient } = supabase
 
 const client = createClient(
-"https://YOUR_PROJECT.supabase.co",
-"YOUR_PUBLIC_ANON_KEY"
+"https://kjtigzaevodgpdtndyqs.supabase.co"
+"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE"
 )
 
 async function addSeafarer() {
