@@ -111,23 +111,18 @@ async function addSeafarer() {
     loadAll()
   }
 
-async function addAppraisal() {
-  const seafarer_id = parseInt(document.getElementById("appSeafarer").value)
-  const date = document.getElementById("appDate").value
-  const score = parseInt(document.getElementById("appScore").value)
-  const comments = document.getElementById("appComments").value
+// insert без комментариев
+await client.from("appraisals").insert([{
+  seafarer_id,
+  issue_date: date,
+  rating: score,
+  pdf_path: pdfPath,        // если у тебя есть pdf
+  uploaded_by_user_id: userId
+}]);
 
-  const { error } = await client.from("appraisals").insert([{
-    seafarer_id,
-    issue_date: date,
-    rating: score,
-    text_comment: comments    // <- используем именно text_comment
-  }])
-
-  if(error) return alert("Error: "+error.message)
-
-  loadAll()
-}
+// select без комментариев
+await client.from("appraisals")
+  .select("id,seafarer_id,issue_date,rating,pdf_path,uploaded_by_user_id");
 
 async function uploadDocument() {
   const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
