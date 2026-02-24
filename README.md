@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Crew Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <style>
 body { font-family: Arial; margin:40px; background:#f4f6f8; }
 .card { background:white; padding:20px; margin-bottom:20px; border-radius:8px; }
@@ -15,6 +16,7 @@ th { background:#eee; }
 a { text-decoration:none; color:blue; }
 </style>
 </head>
+
 <body>
 
 <h2>⚓ Crew Management System</h2>
@@ -28,17 +30,17 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <div class="card">
-  <h3>Add Interview</h3>
-  <select id="intSeafarer"></select>
-  <input type="date" id="intDate">
-  <select id="intResult">
-    <option value="">Select decision</option>
-    <option value="Approved">Approved</option>
-    <option value="Standby">Standby</option>
-    <option value="Rejected">Rejected</option>
-  </select>
-  <input id="intComments" placeholder="Comment">
-  <button onclick="addInterview()">Add Interview</button>
+<h3>Add Interview</h3>
+<select id="intSeafarer"></select>
+<input type="date" id="intDate">
+<select id="intResult">
+<option value="">Select decision</option>
+<option value="Approved">Approved</option>
+<option value="Standby">Standby</option>
+<option value="Rejected">Rejected</option>
+</select>
+<input id="intComments" placeholder="Comment">
+<button onclick="addInterview()">Add Interview</button>
 </div>
 
 <div class="card">
@@ -81,50 +83,59 @@ async function addSeafarer() {
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
 
-  const { error } = await client.from("seafarers").insert([{ internal_id, name, rank }])
-  if(error) return alert("Error: " + (error.message || JSON.stringify(error)))
+  const { error } = await client.from("seafarers")
+    .insert([{ internal_id, name, rank }])
+
+  if(error) return alert("Error: " + error.message)
+
   loadAll()
 }
 
 async function addInterview() {
-  const seafarer_id = parseInt(document.getElementById("intSeafarer").value)
-  const date = document.getElementById("intDate").value
+  const seafarer_id = document.getElementById("intSeafarer").value
+  const interview_date = document.getElementById("intDate").value
   const decision = document.getElementById("intResult").value
   const comment = document.getElementById("intComments").value
 
-  if(!date) return alert("Please select a date")
-  const validDecisions = ["Approved","Standby","Rejected"]
-  if(!validDecisions.includes(decision)) return alert("Decision must be Approved, Standby, or Rejected")
+  if(!interview_date) return alert("Select interview date")
 
-  const { error } = await client.from("interviews").insert([{ seafarer_id, date, decision, text_comment: comment }])
-  if(error) return alert("Error: " + (error.message || JSON.stringify(error)))
+  const valid = ["Approved","Standby","Rejected"]
+  if(!valid.includes(decision))
+    return alert("Decision must be Approved, Standby, or Rejected")
+
+  const { error } = await client.from("interviews")
+    .insert([{ seafarer_id, interview_date, decision, comment }])
+
+  if(error) return alert("Error: " + error.message)
+
   loadAll()
 }
 
 async function uploadDocument() {
-  const seafarer_id = parseInt(document.getElementById("docSeafarer").value)
+  const seafarer_id = document.getElementById("docSeafarer").value
   const files = document.getElementById("fileInput").files
   const doc_type = document.getElementById("docType").value
-  if (!seafarer_id || files.length === 0) return alert("Select seafarer and file(s)")
+
+  if (!seafarer_id || files.length === 0)
+    return alert("Select seafarer and file")
 
   for (let file of files) {
     const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
 
-    // Загружаем PDF в Storage
     const { error: uploadError } = await client.storage
       .from("crew-documents")
       .upload(filePath, file)
-    if (uploadError) return alert("Upload error: " + uploadError.message)
 
-    // Получаем публичный URL
+    if (uploadError) return alert(uploadError.message)
+
     const { data: { publicUrl } } = client.storage
       .from("crew-documents")
       .getPublicUrl(filePath)
 
-    // Вставляем запись в таблицу documents
     const { error: insertError } = await client.from("documents")
       .insert([{ seafarer_id, file_name: file.name, file_url: publicUrl, doc_type }])
-    if (insertError) return alert("DB error: " + insertError.message)
+
+    if (insertError) return alert(insertError.message)
   }
 
   loadAll()
@@ -152,14 +163,29 @@ async function loadAll() {
   })
 
   safeSeafarers.forEach(s=>{
+
     const intList = safeInterviews
-      .filter(i=>i.seafarer_id==s.id)
-      .map(i=>`${i.date} (${i.decision})`)
-      .join("<br>") || "-"
+      .filter(i => i.seafarer_id == s.id)
+      .map(i => `
+        <div style="margin-bottom:6px;padding:6px;border:1px solid #eee;border-radius:6px;">
+          <b>${i.interview_date}</b>
+          <span style="
+            font-weight:bold;
+            color:${i.decision === 'Approved' ? 'green' : i.decision === 'Rejected' ? 'red' : 'orange'};
+          ">
+            (${i.decision})
+          </span>
+          <br>
+          <span style="color:#555;">
+            ${i.comment ? i.comment : "<i>No comment</i>"}
+          </span>
+        </div>
+      `)
+      .join("") || "-"
 
     const docList = safeDocuments
-      .filter(d=>d.seafarer_id==s.id)
-      .map(d=>`<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
+      .filter(d => d.seafarer_id == s.id)
+      .map(d => `<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
       .join("<br>") || "-"
 
     table.innerHTML += `
@@ -175,5 +201,6 @@ async function loadAll() {
 
 loadAll()
 </script>
+
 </body>
 </html>
