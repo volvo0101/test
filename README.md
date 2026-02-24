@@ -227,8 +227,31 @@ async function loadAll() {
         </span>`
     }
 
-    const intList = interviews?.filter(i => i.seafarer_id === s.id)
-      .map(i => `${i.interview_date} (${i.decision})`).join("<br>") || "-"
+   const intList = interviews?.filter(i => i.seafarer_id === s.id)
+  .map(i => {
+
+    let color = "#555"
+
+    if(i.decision === "Approved") color = "green"
+    if(i.decision === "Standby") color = "orange"
+    if(i.decision === "Rejected") color = "red"
+
+    return `
+      <div style="margin-bottom:6px;">
+        <b>${i.interview_date}</b>
+        <span style="
+          font-weight:bold;
+          color:white;
+          background:${color};
+          padding:2px 8px;
+          border-radius:6px;
+          margin-left:6px;
+        ">
+          ${i.decision}
+        </span>
+      </div>
+    `
+  }).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
       .map(d => `<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
