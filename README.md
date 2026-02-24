@@ -146,8 +146,39 @@ async function uploadDocument() {
 }
 
 async function deleteDocument(docId){
+
   if(!confirm("Delete document?")) return
-  await client.from("documents").delete().eq("id", docId)
+
+  // 1. Получаем документ
+  const { data: doc, error: fetchError } = await client
+    .from("documents")
+    .select("*")
+    .eq("id", docId)
+    .single()
+
+  if(fetchError) {
+    alert(fetchError.message)
+    return
+  }
+
+  // 2. Извлекаем путь файла из URL
+  const urlParts = doc.file_url.split("/crew-documents/")
+  const filePath = urlParts[1]
+
+  // 3. Удаляем файл из storage
+  if(filePath){
+    await client
+      .storage
+      .from("crew-documents")
+      .remove([filePath])
+  }
+
+  // 4. Удаляем запись из БД
+  await client
+    .from("documents")
+    .delete()
+    .eq("id", docId)
+
   loadAll()
 }
 
