@@ -106,12 +106,30 @@ const client = createClient(
 "sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE"
 )
 
-async function addSeafarer() {
-  const internal_id = internal_id.value
+async function addSeafarer(){
+
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
+  const internal_id = document.getElementById("internal_id").value
 
-  await client.from("seafarers").insert([{ internal_id, name, rank }])
+  if(!name || !rank){
+    alert("Fill all fields")
+    return
+  }
+
+  const { error } = await client
+    .from("seafarers")
+    .insert([{
+      name: name,
+      rank: rank,
+      internal_id: internal_id
+    }])
+
+  if(error){
+    alert(error.message)
+    return
+  }
+
   loadAll()
 }
   
