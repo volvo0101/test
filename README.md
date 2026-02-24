@@ -50,14 +50,14 @@ a { text-decoration:none; color:blue; }
 <option value="Certificate">Certificate</option>
 <option value="Appraisal">Appraisal</option>
 </select>
-<input type="file" id="fileInput" accept="application/pdf">
+<input type="file" id="fileInput" accept="application/pdf" multiple>
 <button onclick="uploadDocument()">Upload</button>
 </div>
 
 <div class="card">
 <h3>Add Vessel</h3>
 <input id="vesselName" placeholder="Vessel Name">
-<input id="vesselAbbr" placeholder="Abbreviation (e.g. MSC)">
+<input id="vesselAbbr" placeholder="Abbreviation">
 <button onclick="addVessel()">Add Vessel</button>
 </div>
 
@@ -93,48 +93,43 @@ a { text-decoration:none; color:blue; }
 const { createClient } = supabase
 
 const client = createClient(
-"https://kjtigzaevodgpdtndyqs.supabase.co",
-"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE"
+"чччч",
+"чччч"
 )
 
 async function addSeafarer() {
-  const internal_id = document.getElementById("internal_id").value
+  const internal_id = internal_id.value
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
 
-  const { error } = await client.from("seafarers")
-    .insert([{ internal_id, name, rank }])
-
-  if(error) return alert(error.message)
-
+  await client.from("seafarers").insert([{ internal_id, name, rank }])
   loadAll()
 }
 
 async function addInterview() {
-  const seafarer_id = document.getElementById("intSeafarer").value
-  const interview_date = document.getElementById("intDate").value
-  const decision = document.getElementById("intResult").value
-  const comment = document.getElementById("intComments").value
+  const seafarer_id = intSeafarer.value
+  const interview_date = intDate.value
+  const decision = intResult.value
+  const comment = intComments.value
 
   if(!interview_date) return alert("Select interview date")
 
-  const { error } = await client.from("interviews")
+  await client.from("interviews")
     .insert([{ seafarer_id, interview_date, decision, comment }])
-
-  if(error) return alert(error.message)
 
   loadAll()
 }
 
 async function uploadDocument() {
-  const seafarer_id = document.getElementById("docSeafarer").value
-  const files = document.getElementById("fileInput").files
-  const doc_type = document.getElementById("docType").value
+  const seafarer_id = docSeafarer.value
+  const files = fileInput.files
+  const doc_type = docType.value
 
   if (!seafarer_id || files.length === 0)
     return alert("Select seafarer and file")
 
   for (let file of files) {
+
     const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
 
     await client.storage.from("crew-documents").upload(filePath, file)
@@ -150,35 +145,46 @@ async function uploadDocument() {
   loadAll()
 }
 
+async function deleteDocument(docId){
+  if(!confirm("Delete document?")) return
+  await client.from("documents").delete().eq("id", docId)
+  loadAll()
+}
+
 async function addVessel() {
-  const name = document.getElementById("vesselName").value
-  const abbreviation = document.getElementById("vesselAbbr").value
+  const name = vesselName.value
+  const abbreviation = vesselAbbr.value
+  if(!name || !abbreviation) return alert("Fill all fields")
 
-  if(!name || !abbreviation)
-    return alert("Name and abbreviation required")
-
-  const { error } = await client.from("vessels")
-    .insert([{ name, abbreviation }])
-
-  if(error) return alert(error.message)
-
-  document.getElementById("vesselName").value = ""
-  document.getElementById("vesselAbbr").value = ""
-
+  await client.from("vessels").insert([{ name, abbreviation }])
+  vesselName.value = ""
+  vesselAbbr.value = ""
   loadAll()
 }
 
 async function assignToVessel() {
-  const seafarer_id = document.getElementById("assignSeafarer").value
-  const vessel_id = document.getElementById("assignVessel").value
-  const embarkation_date = document.getElementById("embarkDate").value
-  const disembarkation_date = document.getElementById("disembarkDate").value || null
+  const seafarer_id = assignSeafarer.value
+  const vessel_id = assignVessel.value
+  const embarkation_date = embarkDate.value
+  const disembarkation_date = disembarkDate.value || null
 
   if(!seafarer_id || !vessel_id || !embarkation_date)
     return alert("All fields required")
 
   await client.from("sea_service")
     .insert([{ seafarer_id, vessel_id, embarkation_date, disembarkation_date }])
+
+  loadAll()
+}
+
+async function signOff(serviceId){
+  const date = prompt("Enter sign off date (YYYY-MM-DD):")
+  if(!date) return
+
+  await client
+    .from("sea_service")
+    .update({ disembarkation_date: date })
+    .eq("id", serviceId)
 
   loadAll()
 }
@@ -191,11 +197,10 @@ async function loadAll() {
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
 
-  const table = document.getElementById("crewTable")
+  const table = crewTable
   table.innerHTML = ""
 
-  const seafarerSelects = ["intSeafarer","docSeafarer","assignSeafarer"]
-  seafarerSelects.forEach(id => {
+  ;["intSeafarer","docSeafarer","assignSeafarer"].forEach(id=>{
     const sel = document.getElementById(id)
     sel.innerHTML = ""
     seafarers?.forEach(s=>{
@@ -203,90 +208,59 @@ async function loadAll() {
     })
   })
 
-  const vesselSelect = document.getElementById("assignVessel")
-  vesselSelect.innerHTML = ""
+  assignVessel.innerHTML = ""
   vessels?.forEach(v=>{
-    vesselSelect.innerHTML += `<option value="${v.id}">${v.name}</option>`
+    assignVessel.innerHTML += `<option value="${v.id}">${v.name}</option>`
   })
 
   seafarers?.forEach(s=>{
 
-   const activeService = seaService?.find(ss =>
-  ss.seafarer_id === s.id &&
-  (ss.disembarkation_date === null || ss.disembarkation_date === "")
-)
-
-let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
-
-if(activeService){
-  const vessel = vessels?.find(v => v.id === activeService.vessel_id)
-
-  statusHTML = `
-    <div style="color:green;font-weight:bold;">
-      ON BOARD (${vessel ? vessel.name : "Unknown"})
-      <br>since ${activeService.embarkation_date}
-      <br><br>
-      <button onclick="signOff('${activeService.id}')">
-        Sign Off
-      </button>
-    </div>
-  `
-}
+    const activeService = seaService?.find(ss =>
+      ss.seafarer_id === s.id &&
+      (ss.disembarkation_date === null || ss.disembarkation_date === "")
+    )
 
     let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
     if(activeService){
       const vessel = vessels?.find(v => v.id === activeService.vessel_id)
+
       statusHTML = `
-        <span style="color:green;font-weight:bold;">
+        <div style="color:green;font-weight:bold;">
           ON BOARD (${vessel ? vessel.name : "Unknown"})
           <br>since ${activeService.embarkation_date}
-        </span>`
+          <br><br>
+          <button onclick="signOff('${activeService.id}')">
+            Sign Off
+          </button>
+        </div>
+      `
     }
 
-   const intList = interviews?.filter(i => i.seafarer_id === s.id)
-  .map(i => {
+    const intList = interviews?.filter(i => i.seafarer_id === s.id)
+    .map(i=>{
+      let color = "#555"
+      if(i.decision==="Approved") color="green"
+      if(i.decision==="Standby") color="orange"
+      if(i.decision==="Rejected") color="red"
 
-    let color = "#555"
-
-    if(i.decision === "Approved") color = "green"
-    if(i.decision === "Standby") color = "orange"
-    if(i.decision === "Rejected") color = "red"
-
-    return `
-      <div style="margin-bottom:6px;">
-        <b>${i.interview_date}</b>
-        <span style="
-          font-weight:bold;
-          color:white;
-          background:${color};
-          padding:2px 8px;
-          border-radius:6px;
-          margin-left:6px;
-        ">
-          ${i.decision}
-        </span>
-      </div>
-    `
-  }).join("") || "-"
+      return `
+        <div style="margin-bottom:6px;">
+          <b>${i.interview_date}</b>
+          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+            ${i.decision}
+          </span>
+        </div>
+      `
+    }).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
-  .map(d => `
-    <div>
-      <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
-      <button onclick="deleteDocument('${d.id}')">Delete</button>
-    </div>
-  `).join("<br>") || "-"
-
-    async function deleteDocument(docId){
-  if(!confirm("Delete document?")) return
-
-  await client.from("documents")
-    .delete()
-    .eq("id", docId)
-
-  loadAll()
-}
+    .map(d => `
+      <div>
+        <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+        <button onclick="deleteDocument('${d.id}')">Delete</button>
+      </div>
+    `).join("<br>") || "-"
 
     table.innerHTML += `
       <tr>
@@ -295,27 +269,12 @@ if(activeService){
         <td>${statusHTML}</td>
         <td>${intList}</td>
         <td>${docList}</td>
-      </tr>`
+      </tr>
+    `
   })
 }
 
 loadAll()
-
-  async function signOff(serviceId){
-
-  const date = prompt("Enter sign off date (YYYY-MM-DD):")
-
-  if(!date) return
-
-  const { error } = await client
-    .from("sea_service")
-    .update({ disembarkation_date: date })
-    .eq("id", serviceId)
-
-  if(error) return alert(error.message)
-
-  loadAll()
-}
 </script>
 
 </body>
