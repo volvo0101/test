@@ -85,6 +85,7 @@ a { text-decoration:none; color:blue; }
 <tr>
 <th>Name</th>
 <th>Rank</th>
+<th>Status</th>
 <th>Interviews</th>
 <th>Documents</th>
 </tr>
@@ -275,7 +276,94 @@ loadAll()
   document.getElementById("vesselName").value = ""
   document.getElementById("vesselAbbr").value = ""
 
-  loadAll()
+async function loadAll() {
+
+  const { data: seafarers } = await client.from("seafarers").select("*")
+  const { data: interviews } = await client.from("interviews").select("*")
+  const { data: documents } = await client.from("documents").select("*")
+  const { data: vessels } = await client.from("vessels").select("*")
+  const { data: seaService } = await client.from("sea_service").select("*")
+
+  const safeSeafarers = seafarers || []
+  const safeInterviews = interviews || []
+  const safeDocuments = documents || []
+  const safeVessels = vessels || []
+  const safeSeaService = seaService || []
+
+  const table = document.getElementById("crewTable")
+  table.innerHTML = ""
+
+  // Заполняем селекты
+  const seafarerSelects = ["intSeafarer","docSeafarer","assignSeafarer"]
+  seafarerSelects.forEach(id => {
+    const sel = document.getElementById(id)
+    sel.innerHTML = ""
+    safeSeafarers.forEach(s=>{
+      sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
+    })
+  })
+
+  const vesselSelect = document.getElementById("assignVessel")
+  vesselSelect.innerHTML = ""
+  safeVessels.forEach(v=>{
+    vesselSelect.innerHTML += `<option value="${v.id}">${v.name}</option>`
+  })
+
+  safeSeafarers.forEach(s=>{
+
+    // 🔹 НАХОДИМ АКТИВНЫЙ РЕЙС
+    const activeService = safeSeaService.find(ss =>
+      ss.seafarer_id == s.id && !ss.disembarkation_date
+    )
+
+    let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+
+    if(activeService){
+      const vessel = safeVessels.find(v => v.id == activeService.vessel_id)
+      statusHTML = `
+        <span style="color:green;font-weight:bold;">
+          ON BOARD (${vessel ? vessel.name : "Unknown vessel"})
+          <br>
+          since ${activeService.embarkation_date}
+        </span>
+      `
+    }
+
+    const intList = safeInterviews
+      .filter(i => i.seafarer_id == s.id)
+      .map(i => `
+        <div style="margin-bottom:6px;padding:6px;border:1px solid #eee;border-radius:6px;">
+          <b>${i.interview_date}</b>
+          <span style="
+            font-weight:bold;
+            color:${i.decision === 'Approved' ? 'green' : i.decision === 'Rejected' ? 'red' : 'orange'};
+          ">
+            (${i.decision})
+          </span>
+          <br>
+          <span style="color:#555;">
+            ${i.comment ? i.comment : "<i>No comment</i>"}
+          </span>
+        </div>
+      `)
+      .join("") || "-"
+
+    const docList = safeDocuments
+      .filter(d => d.seafarer_id == s.id)
+      .map(d => `<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
+      .join("<br>") || "-"
+
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.rank}</td>
+        <td>${statusHTML}</td>
+        <td>${intList}</td>
+        <td>${docList}</td>
+      </tr>
+    `
+  })
+}
 }
 </script>
 
