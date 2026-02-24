@@ -55,6 +55,22 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <div class="card">
+<h3>Assign to Vessel</h3>
+
+<select id="assignSeafarer"></select>
+
+<select id="assignVessel"></select>
+
+<label>Embarkation Date</label>
+<input type="date" id="embarkDate">
+
+<label>Disembarkation Date</label>
+<input type="date" id="disembarkDate">
+
+<button onclick="assignToVessel()">Save</button>
+</div>
+
+<div class="card">
 <h3>Crew List</h3>
 <button onclick="loadAll()">Refresh</button>
 <table>
@@ -145,21 +161,31 @@ async function loadAll() {
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
+  const { data: vessels } = await client.from("vessels").select("*")
 
   const safeSeafarers = seafarers || []
   const safeInterviews = interviews || []
   const safeDocuments = documents || []
+  const safeVessels = vessels || []
 
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  const selects = ["intSeafarer","docSeafarer"]
-  selects.forEach(id => {
+  // 🔹 Заполняем все select моряками
+  const seafarerSelects = ["intSeafarer","docSeafarer","assignSeafarer"]
+  seafarerSelects.forEach(id => {
     const sel = document.getElementById(id)
     sel.innerHTML = ""
     safeSeafarers.forEach(s=>{
       sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
     })
+  })
+
+  // 🔹 Заполняем суда
+  const vesselSelect = document.getElementById("assignVessel")
+  vesselSelect.innerHTML = ""
+  safeVessels.forEach(v=>{
+    vesselSelect.innerHTML += `<option value="${v.id}">${v.abbreviation}</option>`
   })
 
   safeSeafarers.forEach(s=>{
@@ -197,6 +223,30 @@ async function loadAll() {
       </tr>
     `
   })
+}
+
+async function assignToVessel() {
+
+  const seafarer_id = document.getElementById("assignSeafarer").value
+  const vessel_id = document.getElementById("assignVessel").value
+  const embarkation_date = document.getElementById("embarkDate").value
+  const disembarkation_date = document.getElementById("disembarkDate").value || null
+
+  if(!seafarer_id || !vessel_id || !embarkation_date)
+    return alert("Seafarer, vessel and embarkation date are required")
+
+  const { error } = await client.from("sea_service")
+    .insert([{
+      seafarer_id,
+      vessel_id,
+      embarkation_date,
+      disembarkation_date
+    }])
+
+  if(error) return alert(error.message)
+
+  alert("Assigned successfully")
+  loadAll()
 }
 
 loadAll()
