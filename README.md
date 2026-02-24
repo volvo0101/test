@@ -74,6 +74,15 @@ a { text-decoration:none; color:blue; }
 
 <div class="card">
 <h3>Crew List</h3>
+
+<input 
+  type="text" 
+  id="searchInput" 
+  placeholder="Search by name or rank..."
+  onkeyup="loadAll()"
+  style="width:300px;margin-bottom:10px;"
+>
+
 <button onclick="loadAll()">Refresh</button>
 <table>
 <thead>
@@ -250,6 +259,7 @@ async function signOff(serviceId){
 async function loadAll() {
 
   const { data: seafarers } = await client.from("seafarers").select("*")
+  const searchValue = document.getElementById("searchInput")?.value?.toLowerCase() || ""
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
@@ -261,7 +271,12 @@ async function loadAll() {
   ;["intSeafarer","docSeafarer","assignSeafarer"].forEach(id=>{
     const sel = document.getElementById(id)
     sel.innerHTML = ""
-    seafarers?.forEach(s=>{
+    seafarers
+?.filter(s => 
+  s.name?.toLowerCase().includes(searchValue) ||
+  s.rank?.toLowerCase().includes(searchValue)
+)
+.forEach(s=>{
       sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
     })
   })
