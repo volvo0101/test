@@ -105,7 +105,17 @@ async function addSeafarer() {
   await client.from("seafarers").insert([{ internal_id, name, rank }])
   loadAll()
 }
+  
+function editRank(id, currentRank){
 
+  const cell = document.getElementById("rank_text_" + id).parentElement
+
+  cell.innerHTML = `
+    <input id="rank_edit_${id}" value="${currentRank}" style="width:70%">
+    <button onclick="updateRank('${id}')">💾</button>
+  `
+}
+  
 async function addInterview() {
   const seafarer_id = intSeafarer.value
   const interview_date = intDate.value
@@ -220,6 +230,22 @@ async function signOff(serviceId){
   loadAll()
 }
 
+  async function updateRank(id){
+
+  const input = document.getElementById("rank_edit_" + id)
+  const newRank = input.value
+
+  if(!newRank) return alert("Rank cannot be empty")
+
+  const { error } = await client
+    .from("seafarers")
+    .update({ rank: newRank })
+    .eq("id", id)
+
+  if(error) return alert(error.message)
+
+  loadAll()
+}
 async function loadAll() {
 
   const { data: seafarers } = await client.from("seafarers").select("*")
@@ -296,7 +322,10 @@ async function loadAll() {
     table.innerHTML += `
       <tr>
         <td>${s.name}</td>
-        <td>${s.rank}</td>
+        <td>
+  <span id="rank_text_${s.id}">${s.rank}</span>
+  <button onclick="editRank('${s.id}', '${s.rank}')">✏</button>
+</td>
         <td>${statusHTML}</td>
         <td>${intList}</td>
         <td>${docList}</td>
