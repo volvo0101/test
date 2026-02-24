@@ -79,7 +79,6 @@ a { text-decoration:none; color:blue; }
   type="text" 
   id="searchInput" 
   placeholder="Search by name or rank..."
-  onkeyup="loadAll()"
   style="width:300px;margin-bottom:10px;"
 >
 
@@ -393,6 +392,25 @@ async function loadAll() {
   })
 }
 
+  document.getElementById("searchInput").addEventListener("keyup", function(){
+
+  const value = this.value.toLowerCase()
+  const rows = document.querySelectorAll("#crewTable tr")
+
+  rows.forEach(row => {
+
+    const name = row.children[0]?.innerText.toLowerCase()
+    const rank = row.children[1]?.innerText.toLowerCase()
+
+    if(name.includes(value) || rank.includes(value)){
+      row.style.display = ""
+    } else {
+      row.style.display = "none"
+    }
+
+  })
+})
+  
 loadAll()
 </script>
 
