@@ -81,6 +81,7 @@ a { text-decoration:none; color:blue; }
 <th>Name</th>
 <th>Rank</th>
 <th>Status</th>
+<th>Contract History</th>
 <th>Interviews</th>
 <th>Documents</th>
 </tr>
@@ -276,6 +277,30 @@ async function loadAll() {
       ss.seafarer_id === s.id &&
       (ss.disembarkation_date === null || ss.disembarkation_date === "")
     )
+    const historyList = seaService
+  ?.filter(ss => ss.seafarer_id === s.id)
+  .sort((a,b)=> new Date(b.embarkation_date) - new Date(a.embarkation_date))
+  .map(ss => {
+
+    const vessel = vessels?.find(v => v.id === ss.vessel_id)
+
+    const signOffDate = ss.disembarkation_date 
+      ? ss.disembarkation_date 
+      : "Present"
+
+    return `
+      <div style="
+        font-size:12px;
+        background:#f1f3f6;
+        padding:6px;
+        margin-bottom:4px;
+        border-radius:6px;
+      ">
+        <b>${vessel ? vessel.name : "Unknown"}</b><br>
+        ${ss.embarkation_date} → ${signOffDate}
+      </div>
+    `
+  }).join("") || "-"
 
     let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
@@ -327,6 +352,7 @@ async function loadAll() {
   <button onclick="editRank('${s.id}', '${s.rank}')">✏</button>
 </td>
         <td>${statusHTML}</td>
+        <td>${historyList}</td>
         <td>${intList}</td>
         <td>${docList}</td>
       </tr>
