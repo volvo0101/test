@@ -211,10 +211,27 @@ async function loadAll() {
 
   seafarers?.forEach(s=>{
 
-    const activeService = seaService?.find(ss =>
-      ss.seafarer_id === s.id &&
-      (ss.disembarkation_date === null || ss.disembarkation_date === "")
-    )
+   const activeService = seaService?.find(ss =>
+  ss.seafarer_id === s.id &&
+  (ss.disembarkation_date === null || ss.disembarkation_date === "")
+)
+
+let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+
+if(activeService){
+  const vessel = vessels?.find(v => v.id === activeService.vessel_id)
+
+  statusHTML = `
+    <div style="color:green;font-weight:bold;">
+      ON BOARD (${vessel ? vessel.name : "Unknown"})
+      <br>since ${activeService.embarkation_date}
+      <br><br>
+      <button onclick="signOff('${activeService.id}')">
+        Sign Off
+      </button>
+    </div>
+  `
+}
 
     let statusHTML = `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
@@ -254,8 +271,22 @@ async function loadAll() {
   }).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
-      .map(d => `<a href="${d.file_url}" target="_blank">${d.doc_type}</a>`)
-      .join("<br>") || "-"
+  .map(d => `
+    <div>
+      <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+      <button onclick="deleteDocument('${d.id}')">Delete</button>
+    </div>
+  `).join("<br>") || "-"
+
+    async function deleteDocument(docId){
+  if(!confirm("Delete document?")) return
+
+  await client.from("documents")
+    .delete()
+    .eq("id", docId)
+
+  loadAll()
+}
 
     table.innerHTML += `
       <tr>
@@ -269,6 +300,22 @@ async function loadAll() {
 }
 
 loadAll()
+
+  async function signOff(serviceId){
+
+  const date = prompt("Enter sign off date (YYYY-MM-DD):")
+
+  if(!date) return
+
+  const { error } = await client
+    .from("sea_service")
+    .update({ disembarkation_date: date })
+    .eq("id", serviceId)
+
+  if(error) return alert(error.message)
+
+  loadAll()
+}
 </script>
 
 </body>
