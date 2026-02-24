@@ -319,22 +319,40 @@ async function loadAll() {
       `
     }
 
-    const intList = interviews?.filter(i => i.seafarer_id === s.id)
-    .map(i=>{
-      let color = "#555"
-      if(i.decision==="Approved") color="green"
-      if(i.decision==="Standby") color="orange"
-      if(i.decision==="Rejected") color="red"
+   const intList = interviews?.filter(i => i.seafarer_id === s.id)
+.sort((a,b)=> new Date(b.interview_date) - new Date(a.interview_date))
+.map(i=>{
 
-      return `
-        <div style="margin-bottom:6px;">
-          <b>${i.interview_date}</b>
-          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-            ${i.decision}
-          </span>
-        </div>
-      `
-    }).join("") || "-"
+  let color = "#555"
+  if(i.decision==="Approved") color="green"
+  if(i.decision==="Standby") color="orange"
+  if(i.decision==="Rejected") color="red"
+
+  return `
+    <div style="
+      margin-bottom:8px;
+      padding:6px;
+      background:#f1f3f6;
+      border-radius:6px;
+      font-size:13px;
+    ">
+      <b>${i.interview_date}</b>
+      <span style="
+        background:${color};
+        color:white;
+        padding:3px 8px;
+        border-radius:6px;
+        margin-left:6px;
+        font-weight:bold;
+      ">
+        ${i.decision}
+      </span>
+      <div style="margin-top:4px;color:#333;">
+        ${i.comment ? i.comment : ""}
+      </div>
+    </div>
+  `
+}).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
     .map(d => `
