@@ -85,9 +85,9 @@ a { text-decoration:none; color:blue; }
 <tr>
 <th>Name</th>
 <th>Rank</th>
-<th>Status</th>
 <th>Interviews</th>
 <th>Documents</th>
+<th>Status</th>
 </tr>
 </thead>
 <tbody id="crewTable"></tbody>
