@@ -55,6 +55,13 @@ a { text-decoration:none; color:blue; }
 </div>
 
 <div class="card">
+<h3>Add Vessel</h3>
+<input id="vesselName" placeholder="Vessel Name">
+<input id="vesselAbbr" placeholder="Abbreviation (e.g. MSC)">
+<button onclick="addVessel()">Add Vessel</button>
+</div>
+
+<div class="card">
 <h3>Assign to Vessel</h3>
 
 <select id="assignSeafarer"></select>
@@ -250,6 +257,26 @@ async function assignToVessel() {
 }
 
 loadAll()
+  async function addVessel() {
+
+  const name = document.getElementById("vesselName").value
+  const abbreviation = document.getElementById("vesselAbbr").value
+
+  if(!name || !abbreviation)
+    return alert("Name and abbreviation required")
+
+  const { error } = await client.from("vessels")
+    .insert([{ name, abbreviation }])
+
+  if(error) return alert(error.message)
+
+  alert("Vessel added")
+
+  document.getElementById("vesselName").value = ""
+  document.getElementById("vesselAbbr").value = ""
+
+  loadAll()
+}
 </script>
 
 </body>
