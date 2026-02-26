@@ -145,7 +145,9 @@ const client = createClient(
 "https://kjtigzaevodgpdtndyqs.supabase.co",
 "sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE"
 )
-
+  
+let allSeafarers = []
+  
 async function addSeafarer(){
 
   const name = document.getElementById("name").value
@@ -316,6 +318,7 @@ async function signOff(serviceId){
 async function loadAll() {
 
   const { data: seafarers } = await client.from("seafarers").select("*")
+  allSeafarers = seafarers || []
   const searchValue = document.getElementById("searchInput")?.value?.toLowerCase() || ""
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
@@ -474,14 +477,8 @@ async function loadAll() {
 })
   
 loadAll()
-  let allSeafarers = []
 
-async function loadSeafarersForInterview(){
-  const { data } = await client.from("seafarers").select("*")
-  allSeafarers = data || []
-}
-
-document.getElementById("intSearch").addEventListener("keyup", function(){
+document.getElementById("intSearch").addEventListener("input", function(){
 
   const value = this.value.toLowerCase()
   const dropdown = document.getElementById("intDropdown")
@@ -492,6 +489,36 @@ document.getElementById("intSearch").addEventListener("keyup", function(){
     dropdown.style.display = "none"
     return
   }
+
+  const filtered = allSeafarers.filter(s =>
+    (s.name && s.name.toLowerCase().includes(value)) ||
+    (s.rank && s.rank.toLowerCase().includes(value))
+  )
+
+  if(filtered.length === 0){
+    dropdown.style.display = "none"
+    return
+  }
+
+  filtered.forEach(s=>{
+    const item = document.createElement("div")
+    item.style.padding = "8px"
+    item.style.cursor = "pointer"
+    item.style.borderBottom = "1px solid #eee"
+
+    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
+
+    item.onclick = () => {
+      document.getElementById("intSearch").value = s.name
+      document.getElementById("intSeafarer").value = s.id
+      dropdown.style.display = "none"
+    }
+
+    dropdown.appendChild(item)
+  })
+
+  dropdown.style.display = "block"
+})
 
   const filtered = allSeafarers.filter(s =>
     s.name.toLowerCase().includes(value) ||
@@ -519,6 +546,11 @@ document.getElementById("intSearch").addEventListener("keyup", function(){
   })
 
   dropdown.style.display = "block"
+})
+  document.addEventListener("click", function(e){
+  if(!e.target.closest("#intSearch")){
+    document.getElementById("intDropdown").style.display = "none"
+  }
 })
 </script>
 
