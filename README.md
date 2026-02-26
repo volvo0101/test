@@ -179,21 +179,19 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
-  const experience = {}
+  const experience = {} // ключ = должность
 
   allPositions.forEach(pos => {
-    if(!pos.position || pos.position === "Unknown") return
-
     const position = pos.position
+    if(!position || position === "Unknown") return // пропускаем пустые
+
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
-    
-    // разница в миллисекундах
-    let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
+    let totalDays = Math.floor((end - start) / (1000*60*60*24)) + 1
 
+    // инициализация перед суммированием
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
 
-    // добавляем в существующий опыт
     experience[position].years += Math.floor(totalDays / 360)
     totalDays = totalDays % 360
 
@@ -203,7 +201,7 @@ function calculateServiceDays(allPositions) {
     experience[position].days += totalDays
   })
 
-  // корректируем переполнение дней и месяцев
+  // корректируем переполнение
   Object.keys(experience).forEach(pos => {
     if(experience[pos].days >= 30){
       experience[pos].months += Math.floor(experience[pos].days / 30)
@@ -218,8 +216,9 @@ function calculateServiceDays(allPositions) {
   return experience
 }
 
-function formatExperience(exp){ return `${exp.years}y ${exp.months}m ${exp.days}d` }
-
+function formatExperience(exp){
+  return `${exp.years}y ${exp.months}m ${exp.days}d`
+}
 document.addEventListener("click", e=>{
   ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
     const dd = document.getElementById(id)
