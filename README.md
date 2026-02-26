@@ -143,8 +143,7 @@ a { text-decoration:none; color:blue; }
 
 <script>
 const { createClient } = supabase
-const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
-"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
+const client = createClient("чччч","чччч")
 let allSeafarers = []
 
 // ---------------- Helpers ----------------
@@ -179,7 +178,7 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
-  const experience = {} // ключ = должность, значение = {days, months, years}
+  const experience = {}
 
   allPositions.forEach(pos => {
     const position = pos.position || "Unknown"
@@ -199,7 +198,6 @@ function calculateServiceDays(allPositions) {
     experience[position].months += months
     experience[position].days += days
 
-    // корректируем переполнение
     if(experience[position].days >= 30){
       experience[position].months += Math.floor(experience[position].days / 30)
       experience[position].days = experience[position].days % 30
@@ -241,7 +239,9 @@ async function addSeafarer(){
 
 function editRank(id, currentRank){
   const cell = document.getElementById("rank_text_" + id).parentElement
-  cell.innerHTML = `<input id="rank_edit_${id}" value="${currentRank}" style="width:70%">
+  const ranks = ["Master","C/O","2/O","3/O","J/O","D/C","C/E","2/E","3/E","4/E","J/E","E/C","ETO","ETO assistance","Pumpman","Bosun","AB","OS","Oiler","Wiper","C/Cook","Messman","Fitter","Painter"]
+  let optionsHTML = ranks.map(r => `<option value="${r}" ${r===currentRank?'selected':''}>${r}</option>`).join("")
+  cell.innerHTML = `<select id="rank_edit_${id}">${optionsHTML}</select>
     <button onclick="updateRank('${id}')">💾</button>`
 }
 
@@ -251,18 +251,15 @@ async function updateRank(id){
   const newRank = input.value.trim()
   if(!newRank) return alert("Rank cannot be empty")
 
-  // Получаем текущую активную позицию
   const { data: seaServiceData } = await client.from("sea_service").select("*").eq("seafarer_id", id)
   const activeService = seaServiceData.find(s => !s.disembarkation_date || s.disembarkation_date === "")
 
   const today = new Date().toISOString().split("T")[0]
 
   if(activeService && activeService.position !== newRank){
-    // Закрываем старую должность
     await client.from("sea_service").update({ disembarkation_date: today })
       .eq("id", activeService.id)
 
-    // Создаем новую должность
     await client.from("sea_service").insert([{
       seafarer_id: id,
       vessel_id: activeService.vessel_id || null,
@@ -272,7 +269,6 @@ async function updateRank(id){
     }])
   }
 
-  // Обновляем основной ранк в таблице seafarers (для отображения)
   await client.from("seafarers").update({ rank: newRank }).eq("id", id)
   loadAll()
 }
@@ -367,94 +363,55 @@ async function loadAll(){
     const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
     const positionExperience = calculateServiceDays(allPositions)
 
-    // Получаем текущий ранг (последняя позиция по дате)
-// 1. Получаем текущий ранг: последняя реальная позиция по дате
-const currentRank = allPositions
-  .filter(ss => ss.position && ss.position !== "Unknown")
-  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
+    const currentRank = allPositions
+      .filter(ss => ss.position && ss.position !== "Unknown")
+      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
-// 2. Формируем историю
-const historyList = allPositions
-  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
-  .map(ss => {
-    const vessel = vessels?.find(v => v.id === ss.vessel_id)
-    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-
-    // Берём позицию из записи, если нет — подставляем текущий ранг
-    const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-
-    const expKey = posName.toLowerCase()
-    const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
-
-    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-      <b>${posName}</b> (${exp})<br>
-      ${vessel?.name || "Unknown"}<br>
-      ${ss.embarkation_date} → ${signOffDate}
-    </div>`
-  }).join("") || "-"
+    const historyList = allPositions
+      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
+      .map(ss => {
+        const vessel = vessels?.find(v => v.id === ss.vessel_id)
+        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+        const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
+        const expKey = (ss.position || posName).toLowerCase()
+        const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
+        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+          <b>${posName}</b> (${exp})<br>
+          ${vessel?.name || "Unknown"}<br>
+          ${ss.embarkation_date} → ${signOffDate}
+        </div>`
+      }).join("") || "-"
 
     const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
           ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
-          <br>since ${activeService.embarkation_date}<br><br>
-          <button onclick="signOff('${activeService.id}')">Sign Off</button>
         </div>`
-      : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+      : `<div style="color:red;font-weight:bold;">OFF SIGN</div>`
 
-    const intList = interviews?.filter(i=>i.seafarer_id===s.id)
-      .map(i=>{
-        let color="gray"
-        if(i.decision==="Approved") color="green"
-        if(i.decision==="Standby") color="orange"
-        if(i.decision==="Rejected") color="red"
-        return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-          <b>${i.interview_date}</b>
-          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-            ${i.decision}
-          </span>
-          <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
-            ${i.comment || ""}
-          </div>
-        </div>`
-      }).join("") || "-"
+    const interviewsHTML = interviews?.filter(i => i.seafarer_id === s.id)
+      .map(i => `<div style="font-size:12px;margin-bottom:2px;">
+        ${i.interview_date} - ${i.decision} ${i.comment?`(${i.comment})`:''}
+      </div>`).join("") || "-"
 
-    const docList = documents?.filter(d=>d.seafarer_id===s.id)
-      .map(d=>`
-        <div>
-          <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
-          <button onclick="deleteDocument('${d.id}')">Delete</button>
-        </div>
-      `).join("<br>") || "-"
+    const documentsHTML = documents?.filter(d => d.seafarer_id === s.id)
+      .map(d => `<div style="font-size:12px;margin-bottom:2px;">
+        <a href="${d.file_url}" target="_blank">${d.file_name}</a> [${d.doc_type}]
+        <button onclick="deleteDocument(${d.id})" style="margin-left:5px;">🗑</button>
+      </div>`).join("") || "-"
 
-    table.innerHTML += `
-      <tr>
-        <td>${s.name}</td>
-        <td>
-       <span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
-<button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button>
-        </td>
-        <td>${statusHTML}</td>
-        <td>${historyList}</td>
-        <td>${intList}</td>
-        <td>${docList}</td>
-      </tr>`
+    const row = document.createElement("tr")
+    row.innerHTML = `<td>${s.name}</td>
+      <td><span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
+          <button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button></td>
+      <td>${statusHTML}</td>
+      <td>${historyList}</td>
+      <td>${interviewsHTML}</td>
+      <td>${documentsHTML}</td>`
+    table.appendChild(row)
   }
-
-  setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", vessels || [], ["abbreviation"])
 }
 
-// ---------------- Search Seafarer ----------------
-async function searchSeafarer() {
-  const searchValue = document.getElementById("crewSearchInput")?.value.trim()
-  loadAll()
-}
-
-// ---------------- Initial Load ----------------
 loadAll()
 </script>
-
 </body>
 </html>
