@@ -93,6 +93,12 @@ a { text-decoration:none; color:blue; }
 <button onclick="assignToVessel()">Save</button>
 </div>
 
+<!-- Search Seafarers -->
+<div style="margin-bottom:10px; display:flex; gap:10px;">
+  <input type="text" id="crewSearchInput" placeholder="Search seafarer..." />
+  <button onclick="searchSeafarer()">Find</button>
+</div>
+
 <!-- Crew List -->
 <div class="card">
 <h3>Crew List</h3>
@@ -314,6 +320,79 @@ async function loadAll(){
       </tr>`
     })
 
+   // Search Seafarer
+  async function searchSeafarer() {
+  const searchValue = document.getElementById("crewSearchInput").value.trim();
+
+  if (!searchValue) {
+    loadAll(); // если пусто — показать всех
+    return;
+  }
+
+  // 1️⃣ Ищем моряка
+  const { data: seafarers, error } = await supabase
+    .from("seafarers")
+    .select("*")
+    .or(`full_name.ilike.%${searchValue}%,rank.ilike.%${searchValue}%`);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  if (!seafarers.length) {
+    alert("Seafarer not found");
+    return;
+  }
+
+  const seafarer = seafarers[0];
+
+  // 2️⃣ Загружаем ВСЮ информацию по нему
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("seafarer_id", seafarer.id);
+
+  const { data: assignments } = await supabase
+    .from("assignments")
+    .select("*")
+    .eq("seafarer_id", seafarer.id);
+
+  const { data: interviews } = await supabase
+    .from("interviews")
+    .select("*")
+    .eq("seafarer_id", seafarer.id);
+
+  // 3️⃣ Вывод
+  renderSeafarerFull(seafarer, documents, assignments, interviews);
+}
+// Final
+  function renderSeafarerFull(seafarer, documents, assignments, interviews) {
+  const container = document.getElementById("crewList");
+
+  container.innerHTML = `
+    <div class="card">
+      <h3>${seafarer.full_name}</h3>
+      <p><b>Rank:</b> ${seafarer.rank || "-"}</p>
+      <p><b>DOB:</b> ${seafarer.dob || "-"}</p>
+
+      <h4>Documents</h4>
+      <ul>
+        ${documents.map(d => `<li>${d.type} - ${d.expiry_date || "-"}</li>`).join("")}
+      </ul>
+
+      <h4>Assignments</h4>
+      <ul>
+        ${assignments.map(a => `<li>${a.vessel_name} (${a.sign_on} - ${a.sign_off || "Present"})</li>`).join("")}
+      </ul>
+
+      <h4>Interviews</h4>
+      <ul>
+        ${interviews.map(i => `<li>${i.date} - ${i.result}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
   // Setup dropdowns
   setupDropdown("crewSearchInput","","", allSeafarers, ["name","rank"])
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
