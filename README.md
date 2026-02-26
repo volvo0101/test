@@ -28,36 +28,36 @@ a { text-decoration:none; color:blue; }
 <input id="internal_id" placeholder="Internal ID">
 <input id="name" placeholder="Full Name">
 
-  <label>Initial Position / Rank</label>
-  <select id="rank">
-    <option value="">Select position</option>
-    <option value="Master">Master</option>
-    <option value="C/O">C/O</option>
-    <option value="2/O">2/O</option>
-    <option value="3/O">3/O</option>
-    <option value="J/O">J/O</option>
-    <option value="D/C">D/C</option>
-    <option value="C/E">C/E</option>
-    <option value="2/E">2/E</option>
-    <option value="3/E">3/E</option>
-    <option value="4/E">4/E</option>
-    <option value="J/E">J/E</option>
-    <option value="E/C">E/C</option>
-    <option value="ETO">ETO</option>
-    <option value="ETO assistance">ETO assistance</option>
-    <option value="Pumpman">Pumpman</option>
-    <option value="Bosun">Bosun</option>
-    <option value="AB">AB</option>
-    <option value="OS">OS</option>
-    <option value="Oiler">Oiler</option>
-    <option value="Wiper">Wiper</option>
-    <option value="C/Cook">C/Cook</option>
-    <option value="Messman">Messman</option>
-    <option value="Fitter">Fitter</option>
-    <option value="Painter">Painter</option>
+<label>Position / Rank</label>
+<select id="rank">
+  <option value="">Select position</option>
+  <option value="Master">Master</option>
+  <option value="C/O">C/O</option>
+  <option value="2/O">2/O</option>
+  <option value="3/O">3/O</option>
+  <option value="J/O">J/O</option>
+  <option value="D/C">D/C</option>
+  <option value="C/E">C/E</option>
+  <option value="2/E">2/E</option>
+  <option value="3/E">3/E</option>
+  <option value="4/E">4/E</option>
+  <option value="J/E">J/E</option>
+  <option value="E/C">E/C</option>
+  <option value="ETO">ETO</option>
+  <option value="ETO assistance">ETO assistance</option>
+  <option value="Pumpman">Pumpman</option>
+  <option value="Bosun">Bosun</option>
+  <option value="AB">AB</option>
+  <option value="OS">OS</option>
+  <option value="Oiler">Oiler</option>
+  <option value="Wiper">Wiper</option>
+  <option value="C/Cook">C/Cook</option>
+  <option value="Messman">Messman</option>
+  <option value="Fitter">Fitter</option>
+  <option value="Painter">Painter</option>
+</select>
 <button onclick="addSeafarer()">Add</button>
 </div>
-
 <!-- Add Interview -->
 <div class="card">
 <h3>Add Interview</h3>
@@ -327,7 +327,6 @@ async function signOff(serviceId){
 
 // ---------------- Load All ----------------
 async function loadAll(){
-
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
@@ -340,95 +339,77 @@ async function loadAll(){
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  allSeafarers
-    .filter(s => 
-      s.name.toLowerCase().includes(searchValue) || 
-      s.rank.toLowerCase().includes(searchValue)
-    )
-    .forEach(s=>{
+  for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
 
-      await client.from("sea_service").insert([{
-  seafarer_id: id,
-  vessel_id: null,       // можно назначить потом
-  position: newRank,     // новая должность
-  embarkation_date: today,
-  disembarkation_date: null
-}])
+    const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
+    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+    const positionExperience = calculateServiceDays(allPositions)
 
-     const historyList = allPositions
-  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-  .map(ss=>{
-    const vessel = vessels?.find(v=>v.id===ss.vessel_id)
-    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-    const exp = positionExperience[ss.position] ? formatExperience(positionExperience[ss.position]) : "-"
-    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-      <b>${ss.position}</b> (${exp})<br>
-      ${vessel?.name || "Unknown"}<br>
-      ${ss.embarkation_date} → ${signOffDate}
-    </div>`
-  }).join("") || "-"
+    const historyList = allPositions
+      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+      .map(ss=>{
+        const vessel = vessels?.find(v=>v.id===ss.vessel_id)
+        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+        const exp = positionExperience[ss.position] ? formatExperience(positionExperience[ss.position]) : "-"
+        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+          <b>${ss.position}</b> (${exp})<br>
+          ${vessel?.name || "Unknown"}<br>
+          ${ss.embarkation_date} → ${signOffDate}
+        </div>`
+      }).join("") || "-"
 
-      const statusHTML = activeService 
-        ? `<div style="color:green;font-weight:bold;">
-            ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
-            <br>since ${activeService.embarkation_date}<br><br>
-            <button onclick="signOff('${activeService.id}')">Sign Off</button>
-          </div>`
-        : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+    const statusHTML = activeService 
+      ? `<div style="color:green;font-weight:bold;">
+          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+          <br>since ${activeService.embarkation_date}<br><br>
+          <button onclick="signOff('${activeService.id}')">Sign Off</button>
+        </div>`
+      : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
-      const intList = interviews?.filter(i=>i.seafarer_id===s.id)
-        .map(i=>{
-          let color="gray"
-          if(i.decision==="Approved") color="green"
-          if(i.decision==="Standby") color="orange"
-          if(i.decision==="Rejected") color="red"
-          return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-            <b>${i.interview_date}</b>
-            <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-              ${i.decision}
-            </span>
-            <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
-              ${i.comment || ""}
-            </div>
-          </div>`
-        }).join("") || "-"
-
-      const docList = documents?.filter(d=>d.seafarer_id===s.id)
-        .map(d=>`
-          <div>
-            <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
-            <button onclick="deleteDocument('${d.id}')">Delete</button>
+    const intList = interviews?.filter(i=>i.seafarer_id===s.id)
+      .map(i=>{
+        let color="gray"
+        if(i.decision==="Approved") color="green"
+        if(i.decision==="Standby") color="orange"
+        if(i.decision==="Rejected") color="red"
+        return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
+          <b>${i.interview_date}</b>
+          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+            ${i.decision}
+          </span>
+          <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+            ${i.comment || ""}
           </div>
-        `).join("<br>") || "-"
+        </div>`
+      }).join("") || "-"
 
-      table.innerHTML += `
-        <tr>
-          <td>${s.name}</td>
-          <td>
-            <span id="rank_text_${s.id}">${s.rank}</span>
-            <button onclick="editRank('${s.id}','${s.rank}')">✏</button>
-          </td>
-          <td>${statusHTML}</td>
-          <td>${historyList}</td>
-          <td>${intList}</td>
-          <td>${docList}</td>
-        </tr>`
-    })
-  
-  const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
+    const docList = documents?.filter(d=>d.seafarer_id===s.id)
+      .map(d=>`
+        <div>
+          <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+          <button onclick="deleteDocument('${d.id}')">Delete</button>
+        </div>
+      `).join("<br>") || "-"
 
-// Определяем активную должность
-const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>
+          <span id="rank_text_${s.id}">${s.rank}</span>
+          <button onclick="editRank('${s.id}','${s.rank}')">✏</button>
+        </td>
+        <td>${statusHTML}</td>
+        <td>${historyList}</td>
+        <td>${intList}</td>
+        <td>${docList}</td>
+      </tr>`
+  }
 
-// Подсчёт стажа по должностям
-const positionExperience = calculateServiceDays(allPositions)
-
- // Setup dropdowns
-setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
-setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
-setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
+  // Setup dropdowns
+  setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
 }
-
 // ---------------- Search Seafarer ----------------
 async function searchSeafarer(){
 
