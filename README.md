@@ -268,7 +268,7 @@ async function loadAll() {
       <b>${i.interview_date}</b>
       <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
         ${i.decision}</span>
-      <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+      <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px; max-width:250px;">
         ${i.comment || ""}
       </div>
     </div>`
