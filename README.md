@@ -422,7 +422,6 @@ async function searchSeafarer(){
   }
 
   loadAll() // фильтрация уже встроена в loadAll
-}
 
 // ---------------- Initial Load ----------------
 loadAll()
