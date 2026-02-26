@@ -143,8 +143,7 @@ a { text-decoration:none; color:blue; }
 
 <script>
 const { createClient } = supabase
-const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
-"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
+const client = createClient("чччч","чччч")
 let allSeafarers = []
 
 // ---------------- Helpers ----------------
@@ -180,44 +179,37 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
   const experience = {}
-
   allPositions.forEach(pos => {
     const position = pos.position || "Unknown"
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
-    let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
-
-    const years = Math.floor(totalDays / 360)
-    totalDays -= years * 360
-    const months = Math.floor(totalDays / 30)
-    totalDays -= months * 30
+    let totalDays = Math.floor((end - start) / (1000*60*60*24)) + 1
+    const years = Math.floor(totalDays/360)
+    totalDays -= years*360
+    const months = Math.floor(totalDays/30)
+    totalDays -= months*30
     const days = totalDays
 
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
-
     experience[position].years += years
     experience[position].months += months
     experience[position].days += days
 
     if(experience[position].days >= 30){
-      experience[position].months += Math.floor(experience[position].days / 30)
-      experience[position].days = experience[position].days % 30
+      experience[position].months += Math.floor(experience[position].days/30)
+      experience[position].days %= 30
     }
     if(experience[position].months >= 12){
-      experience[position].years += Math.floor(experience[position].months / 12)
-      experience[position].months = experience[position].months % 12
+      experience[position].years += Math.floor(experience[position].months/12)
+      experience[position].months %= 12
     }
   })
-
   return experience
 }
 
-function formatExperience(exp){
-  return `${exp.years}y ${exp.months}m ${exp.days}d`
-}
+function formatExperience(exp){ return `${exp.years}y ${exp.months}m ${exp.days}d` }
 
-// Закрыть dropdown при клике вне его
-document.addEventListener("click", e => {
+document.addEventListener("click", e=>{
   ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
     const dd = document.getElementById(id)
     if(dd && !e.target.closest(`#${id.replace("Dropdown","Search")}`)) dd.style.display="none"
@@ -240,13 +232,35 @@ async function addSeafarer(){
 
 function editRank(id, currentRank){
   const cell = document.getElementById("rank_text_" + id).parentElement
-  const ranks = ["Master","C/O","2/O","3/O","J/O","D/C","C/E","2/E","3/E","4/E","J/E","E/C","ETO","ETO assistance","Pumpman","Bosun","AB","OS","Oiler","Wiper","C/Cook","Messman","Fitter","Painter"]
-  let optionsHTML = ranks.map(r => `<option value="${r}" ${r===currentRank?'selected':''}>${r}</option>`).join("")
-  cell.innerHTML = `<select id="rank_edit_${id}">${optionsHTML}</select>
+  cell.innerHTML = `<select id="rank_edit_${id}">
+      <option ${currentRank=="Master"?"selected":""}>Master</option>
+      <option ${currentRank=="C/O"?"selected":""}>C/O</option>
+      <option ${currentRank=="2/O"?"selected":""}>2/O</option>
+      <option ${currentRank=="3/O"?"selected":""}>3/O</option>
+      <option ${currentRank=="J/O"?"selected":""}>J/O</option>
+      <option ${currentRank=="D/C"?"selected":""}>D/C</option>
+      <option ${currentRank=="C/E"?"selected":""}>C/E</option>
+      <option ${currentRank=="2/E"?"selected":""}>2/E</option>
+      <option ${currentRank=="3/E"?"selected":""}>3/E</option>
+      <option ${currentRank=="4/E"?"selected":""}>4/E</option>
+      <option ${currentRank=="J/E"?"selected":""}>J/E</option>
+      <option ${currentRank=="E/C"?"selected":""}>E/C</option>
+      <option ${currentRank=="ETO"?"selected":""}>ETO</option>
+      <option ${currentRank=="ETO assistance"?"selected":""}>ETO assistance</option>
+      <option ${currentRank=="Pumpman"?"selected":""}>Pumpman</option>
+      <option ${currentRank=="Bosun"?"selected":""}>Bosun</option>
+      <option ${currentRank=="AB"?"selected":""}>AB</option>
+      <option ${currentRank=="OS"?"selected":""}>OS</option>
+      <option ${currentRank=="Oiler"?"selected":""}>Oiler</option>
+      <option ${currentRank=="Wiper"?"selected":""}>Wiper</option>
+      <option ${currentRank=="C/Cook"?"selected":""}>C/Cook</option>
+      <option ${currentRank=="Messman"?"selected":""}>Messman</option>
+      <option ${currentRank=="Fitter"?"selected":""}>Fitter</option>
+      <option ${currentRank=="Painter"?"selected":""}>Painter</option>
+    </select>
     <button onclick="updateRank('${id}')">💾</button>`
 }
 
-// ---------------- Update Rank ----------------
 async function updateRank(id){
   const input = document.getElementById("rank_edit_" + id)
   const newRank = input.value.trim()
@@ -280,8 +294,7 @@ async function addInterview(){
   const interview_date = document.getElementById("intDate").value
   const decision = document.getElementById("intResult").value
   const comment = document.getElementById("intComments").value
-  if(!seafarer_id) return alert("Select seafarer")
-  if(!interview_date) return alert("Select interview date")
+  if(!seafarer_id || !interview_date) return alert("Select seafarer and date")
   await client.from("interviews").insert([{ seafarer_id, interview_date, decision, comment }])
   document.getElementById("intComments").value = ""
   document.getElementById("intDate").value = ""
@@ -295,12 +308,12 @@ async function uploadDocument(){
   const seafarer_id = document.getElementById("docSeafarer").value
   const files = document.getElementById("fileInput").files
   const doc_type = document.getElementById("docType").value
-  if(!seafarer_id || files.length === 0) return alert("Select seafarer and file")
+  if(!seafarer_id || files.length===0) return alert("Select seafarer and file")
   for(let file of files){
     const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
     await client.storage.from("crew-documents").upload(filePath, file)
     const { data } = client.storage.from("crew-documents").getPublicUrl(filePath)
-    await client.from("documents").insert([{ seafarer_id, file_name: file.name, file_url: data.publicUrl, doc_type }])
+    await client.from("documents").insert([{ seafarer_id, file_name:file.name, file_url:data.publicUrl, doc_type }])
   }
   loadAll()
 }
@@ -360,21 +373,21 @@ async function loadAll(){
 
   for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
 
-    const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
-    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+    const allPositions = seaService?.filter(ss => ss.seafarer_id===s.id) || []
+    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date==="")
     const positionExperience = calculateServiceDays(allPositions)
 
     const currentRank = allPositions
       .filter(ss => ss.position && ss.position !== "Unknown")
-      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
+      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))[0]?.position || "Unknown"
 
     const historyList = allPositions
-      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
-      .map(ss => {
-        const vessel = vessels?.find(v => v.id === ss.vessel_id)
+      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+      .map(ss=>{
+        const vessel = vessels?.find(v=>v.id===ss.vessel_id)
         const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-        const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-        const expKey = (ss.position || posName).toLowerCase()
+        const posName = ss.position && ss.position!=="Unknown" ? ss.position : currentRank
+        const expKey = posName.toLowerCase()
         const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
         return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
           <b>${posName}</b> (${exp})<br>
@@ -383,36 +396,62 @@ async function loadAll(){
         </div>`
       }).join("") || "-"
 
-    const statusHTML = activeService 
+    const statusHTML = activeService
       ? `<div style="color:green;font-weight:bold;">
-          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})<br>
+          since ${activeService.embarkation_date}<br><br>
+          <button onclick="signOff('${activeService.id}')">Sign Off</button>
         </div>`
-      : `<div style="color:red;font-weight:bold;">OFF SIGN</div>`
+      : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
-    const interviewsHTML = interviews?.filter(i => i.seafarer_id === s.id)
-      .map(i => `<div style="font-size:12px;margin-bottom:2px;">
-        ${i.interview_date} - ${i.decision} ${i.comment?`(${i.comment})`:''}
-      </div>`).join("") || "-"
+    const intList = interviews?.filter(i=>i.seafarer_id===s.id)
+      .map(i=>{
+        let color="gray"
+        if(i.decision==="Approved") color="green"
+        if(i.decision==="Standby") color="orange"
+        if(i.decision==="Rejected") color="red"
+        return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
+          <b>${i.interview_date}</b>
+          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+            ${i.decision}
+          </span>
+          <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+            ${i.comment || ""}
+          </div>
+        </div>`
+      }).join("") || "-"
 
-    const documentsHTML = documents?.filter(d => d.seafarer_id === s.id)
-      .map(d => `<div style="font-size:12px;margin-bottom:2px;">
-        <a href="${d.file_url}" target="_blank">${d.file_name}</a> [${d.doc_type}]
-        <button onclick="deleteDocument(${d.id})" style="margin-left:5px;">🗑</button>
-      </div>`).join("") || "-"
+    const docList = documents?.filter(d=>d.seafarer_id===s.id)
+      .map(d=>`<div>
+        <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+        <button onclick="deleteDocument('${d.id}')">Delete</button>
+      </div>`).join("<br>") || "-"
 
-    const row = document.createElement("tr")
-    row.innerHTML = `<td>${s.name}</td>
-      <td><span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
-          <button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button></td>
-      <td>${statusHTML}</td>
-      <td>${historyList}</td>
-      <td>${interviewsHTML}</td>
-      <td>${documentsHTML}</td>`
-    table.appendChild(row)
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>
+          <span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
+          <button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button>
+        </td>
+        <td>${statusHTML}</td>
+        <td>${historyList}</td>
+        <td>${intList}</td>
+        <td>${docList}</td>
+      </tr>`
   }
+
+  setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", vessels || [], ["abbreviation"])
 }
 
+document.getElementById("crewSearchInput").addEventListener("input", loadAll)
+
+// ---------------- Initial Load ----------------
 loadAll()
 </script>
+
 </body>
 </html>
