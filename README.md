@@ -96,7 +96,7 @@ a { text-decoration:none; color:blue; }
 <!-- Search Seafarers -->
 <div style="margin-bottom:10px; display:flex; gap:10px;">
   <input type="text" id="crewSearchInput" placeholder="Search seafarer..." />
-  <button onclick="searchSeafarer()">Find</button>
+  <button id="crewSearchBtn">Find</button>
 </div>
 
 <!-- Crew List -->
@@ -260,34 +260,48 @@ async function signOff(serviceId){
 
 // ---------------- Load All ----------------
 async function loadAll(){
+
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
+
   allSeafarers = seafarers || []
 
-  const searchValue = document.getElementById("crewSearchInput").value.toLowerCase()
+  const searchValue = document.getElementById("crewSearchInput")?.value?.toLowerCase() || ""
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
   allSeafarers
-    .filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))
+    .filter(s => 
+      s.name.toLowerCase().includes(searchValue) || 
+      s.rank.toLowerCase().includes(searchValue)
+    )
     .forEach(s=>{
-      const activeService = seaService?.find(ss => ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
+
+      const activeService = seaService?.find(ss => 
+        ss.seafarer_id===s.id && 
+        (!ss.disembarkation_date || ss.disembarkation_date==="")
+      )
+
       const historyList = seaService?.filter(ss=>ss.seafarer_id===s.id)
         .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
         .map(ss=>{
           const vessel = vessels?.find(v=>v.id===ss.vessel_id)
           const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
           return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-            <b>${vessel?.name || "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}</div>`
+            <b>${vessel?.name || "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}
+          </div>`
         }).join("") || "-"
 
-      const statusHTML = activeService ? `<div style="color:green;font-weight:bold;">
-        ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
-        <br>since ${activeService.embarkation_date}<br><br>
-        <button onclick="signOff('${activeService.id}')">Sign Off</button></div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+      const statusHTML = activeService 
+        ? `<div style="color:green;font-weight:bold;">
+            ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+            <br>since ${activeService.embarkation_date}<br><br>
+            <button onclick="signOff('${activeService.id}')">Sign Off</button>
+          </div>`
+        : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
       const intList = interviews?.filter(i=>i.seafarer_id===s.id)
         .map(i=>{
@@ -298,107 +312,53 @@ async function loadAll(){
           return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
             <b>${i.interview_date}</b>
             <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-              ${i.decision}</span>
-            <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px; max-width:250px;">
+              ${i.decision}
+            </span>
+            <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
               ${i.comment || ""}
             </div>
           </div>`
         }).join("") || "-"
 
       const docList = documents?.filter(d=>d.seafarer_id===s.id)
-        .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a>
-        <button onclick="deleteDocument('${d.id}')">Delete</button></div>`).join("<br>") || "-"
+        .map(d=>`
+          <div>
+            <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+            <button onclick="deleteDocument('${d.id}')">Delete</button>
+          </div>
+        `).join("<br>") || "-"
 
-      table.innerHTML += `<tr>
-        <td>${s.name}</td>
-        <td><span id="rank_text_${s.id}">${s.rank}</span>
-          <button onclick="editRank('${s.id}','${s.rank}')">✏</button></td>
-        <td>${statusHTML}</td>
-        <td>${historyList}</td>
-        <td>${intList}</td>
-        <td>${docList}</td>
-      </tr>`
+      table.innerHTML += `
+        <tr>
+          <td>${s.name}</td>
+          <td>
+            <span id="rank_text_${s.id}">${s.rank}</span>
+            <button onclick="editRank('${s.id}','${s.rank}')">✏</button>
+          </td>
+          <td>${statusHTML}</td>
+          <td>${historyList}</td>
+          <td>${intList}</td>
+          <td>${docList}</td>
+        </tr>`
     })
 
-   // Search Seafarer
-  async function searchSeafarer() {
-  const searchValue = document.getElementById("crewSearchInput").value.trim();
-
-  if (!searchValue) {
-    loadAll(); // если пусто — показать всех
-    return;
-  }
-
-  // 1️⃣ Ищем моряка
-  const { data: seafarers, error } = await supabase
-    .from("seafarers")
-    .select("*")
-    .or(`full_name.ilike.%${searchValue}%,rank.ilike.%${searchValue}%`);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  if (!seafarers.length) {
-    alert("Seafarer not found");
-    return;
-  }
-
-  const seafarer = seafarers[0];
-
-  // 2️⃣ Загружаем ВСЮ информацию по нему
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("*")
-    .eq("seafarer_id", seafarer.id);
-
-  const { data: assignments } = await supabase
-    .from("assignments")
-    .select("*")
-    .eq("seafarer_id", seafarer.id);
-
-  const { data: interviews } = await supabase
-    .from("interviews")
-    .select("*")
-    .eq("seafarer_id", seafarer.id);
-
-  // 3️⃣ Вывод
-  renderSeafarerFull(seafarer, documents, assignments, interviews);
-}
-// Final
-  function renderSeafarerFull(seafarer, documents, assignments, interviews) {
-  const container = document.getElementById("crewList");
-
-  container.innerHTML = `
-    <div class="card">
-      <h3>${seafarer.full_name}</h3>
-      <p><b>Rank:</b> ${seafarer.rank || "-"}</p>
-      <p><b>DOB:</b> ${seafarer.dob || "-"}</p>
-
-      <h4>Documents</h4>
-      <ul>
-        ${documents.map(d => `<li>${d.type} - ${d.expiry_date || "-"}</li>`).join("")}
-      </ul>
-
-      <h4>Assignments</h4>
-      <ul>
-        ${assignments.map(a => `<li>${a.vessel_name} (${a.sign_on} - ${a.sign_off || "Present"})</li>`).join("")}
-      </ul>
-
-      <h4>Interviews</h4>
-      <ul>
-        ${interviews.map(i => `<li>${i.date} - ${i.result}</li>`).join("")}
-      </ul>
-    </div>
-  `;
-}
   // Setup dropdowns
-  setupDropdown("crewSearchInput","","", allSeafarers, ["name","rank"])
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", await client.from("vessels").select("*").then(r=>r.data||[]), ["name"])
+}
+
+// ---------------- Search Seafarer ----------------
+async function searchSeafarer(){
+
+  const searchValue = document.getElementById("crewSearchInput")?.value.trim()
+
+  if(!searchValue){
+    loadAll()
+    return
+  }
+
+  loadAll() // фильтрация уже встроена в loadAll
 }
 
 // ---------------- Initial Load ----------------
