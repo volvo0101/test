@@ -27,7 +27,34 @@ a { text-decoration:none; color:blue; }
 <h3>Add Seafarer</h3>
 <input id="internal_id" placeholder="Internal ID">
 <input id="name" placeholder="Full Name">
-<input id="rank" placeholder="Rank">
+
+  <label>Initial Position / Rank</label>
+  <select id="rank">
+    <option value="">Select position</option>
+    <option value="Master">Master</option>
+    <option value="C/O">C/O</option>
+    <option value="2/O">2/O</option>
+    <option value="3/O">3/O</option>
+    <option value="J/O">J/O</option>
+    <option value="D/C">D/C</option>
+    <option value="C/E">C/E</option>
+    <option value="2/E">2/E</option>
+    <option value="3/E">3/E</option>
+    <option value="4/E">4/E</option>
+    <option value="J/E">J/E</option>
+    <option value="E/C">E/C</option>
+    <option value="ETO">ETO</option>
+    <option value="ETO assistance">ETO assistance</option>
+    <option value="Pumpman">Pumpman</option>
+    <option value="Bosun">Bosun</option>
+    <option value="AB">AB</option>
+    <option value="OS">OS</option>
+    <option value="Oiler">Oiler</option>
+    <option value="Wiper">Wiper</option>
+    <option value="C/Cook">C/Cook</option>
+    <option value="Messman">Messman</option>
+    <option value="Fitter">Fitter</option>
+    <option value="Painter">Painter</option>
 <button onclick="addSeafarer()">Add</button>
 </div>
 
@@ -147,8 +174,45 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
     })
     dropdown.style.display = filtered.length ? "block" : "none"
   })
+// Подсчет стажа по должностям в днях, месяцах и годах
+function calculateServiceDays(allPositions){
+  const experience = {} // ключ = должность, значение = {days, months, years}
+
+  allPositions.forEach(pos=>{
+    const start = new Date(pos.embarkation_date)
+    const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
+    let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
+
+    const years = Math.floor(totalDays / 360) // 12 месяцев * 30 дней
+    totalDays -= years * 360
+    const months = Math.floor(totalDays / 30)
+    totalDays -= months * 30
+    const days = totalDays
+
+    if(!experience[pos.position]) experience[pos.position] = {years:0, months:0, days:0}
+
+    experience[pos.position].years += years
+    experience[pos.position].months += months
+    experience[pos.position].days += days
+
+    // корректируем переполнение дней и месяцев
+    if(experience[pos.position].days >= 30){
+      experience[pos.position].months += Math.floor(experience[pos.position].days / 30)
+      experience[pos.position].days = experience[pos.position].days % 30
+    }
+    if(experience[pos.position].months >= 12){
+      experience[pos.position].years += Math.floor(experience[pos.position].months / 12)
+      experience[pos.position].months = experience[pos.position].months % 12
+    }
+  })
+
+  return experience
 }
 
+// Формат для вывода
+function formatExperience(exp){
+  return `${exp.years}y ${exp.months}m ${exp.days}d`
+}
 // ---------------- Close all dropdowns on click outside ----------------
 document.addEventListener("click", e => {
   [
@@ -283,20 +347,26 @@ async function loadAll(){
     )
     .forEach(s=>{
 
-      const activeService = seaService?.find(ss => 
-        ss.seafarer_id===s.id && 
-        (!ss.disembarkation_date || ss.disembarkation_date==="")
-      )
+      await client.from("sea_service").insert([{
+  seafarer_id: id,
+  vessel_id: null,       // можно назначить потом
+  position: newRank,     // новая должность
+  embarkation_date: today,
+  disembarkation_date: null
+}])
 
-      const historyList = seaService?.filter(ss=>ss.seafarer_id===s.id)
-        .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-        .map(ss=>{
-          const vessel = vessels?.find(v=>v.id===ss.vessel_id)
-          const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-          return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-            <b>${vessel?.name || "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}
-          </div>`
-        }).join("") || "-"
+     const historyList = allPositions
+  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+  .map(ss=>{
+    const vessel = vessels?.find(v=>v.id===ss.vessel_id)
+    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+    const exp = positionExperience[ss.position] ? formatExperience(positionExperience[ss.position]) : "-"
+    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+      <b>${ss.position}</b> (${exp})<br>
+      ${vessel?.name || "Unknown"}<br>
+      ${ss.embarkation_date} → ${signOffDate}
+    </div>`
+  }).join("") || "-"
 
       const statusHTML = activeService 
         ? `<div style="color:green;font-weight:bold;">
@@ -344,6 +414,14 @@ async function loadAll(){
           <td>${docList}</td>
         </tr>`
     })
+  
+  const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
+
+// Определяем активную должность
+const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+
+// Подсчёт стажа по должностям
+const positionExperience = calculateServiceDays(allPositions)
 
   // Setup dropdowns
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
