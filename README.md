@@ -240,12 +240,35 @@ function editRank(id, currentRank){
     <button onclick="updateRank('${id}')">💾</button>`
 }
 
+// ---------------- Update Rank ----------------
 async function updateRank(id){
   const input = document.getElementById("rank_edit_" + id)
-  const newRank = input.value
+  const newRank = input.value.trim()
   if(!newRank) return alert("Rank cannot be empty")
-  const { error } = await client.from("seafarers").update({ rank: newRank }).eq("id", id)
-  if(error) return alert(error.message)
+
+  // Получаем текущую активную позицию
+  const { data: seaServiceData } = await client.from("sea_service").select("*").eq("seafarer_id", id)
+  const activeService = seaServiceData.find(s => !s.disembarkation_date || s.disembarkation_date === "")
+
+  const today = new Date().toISOString().split("T")[0]
+
+  if(activeService && activeService.position !== newRank){
+    // Закрываем старую должность
+    await client.from("sea_service").update({ disembarkation_date: today })
+      .eq("id", activeService.id)
+
+    // Создаем новую должность
+    await client.from("sea_service").insert([{
+      seafarer_id: id,
+      vessel_id: activeService.vessel_id || null,
+      position: newRank,
+      embarkation_date: today,
+      disembarkation_date: null
+    }])
+  }
+
+  // Обновляем основной ранк в таблице seafarers (для отображения)
+  await client.from("seafarers").update({ rank: newRank }).eq("id", id)
   loadAll()
 }
 
@@ -389,8 +412,8 @@ async function loadAll(){
       <tr>
         <td>${s.name}</td>
         <td>
-          <span id="rank_text_${s.id}">${s.rank}</span>
-          <button onclick="editRank('${s.id}','${s.rank}')">✏</button>
+       <span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
+<button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button>
         </td>
         <td>${statusHTML}</td>
         <td>${historyList}</td>
