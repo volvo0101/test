@@ -32,7 +32,31 @@ a { text-decoration:none; color:blue; }
 <div class="card">
 <h3>Add Interview</h3>
 
-<select id="intSeafarer"></select>
+<div style="position:relative;width:300px;">
+  <input 
+    type="text" 
+    id="intSearch"
+    placeholder="Type name or rank..."
+    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;"
+    autocomplete="off"
+  >
+
+  <div id="intDropdown" style="
+    position:absolute;
+    top:100%;
+    left:0;
+    right:0;
+    background:white;
+    border:1px solid #ccc;
+    border-top:none;
+    max-height:200px;
+    overflow-y:auto;
+    display:none;
+    z-index:1000;
+  "></div>
+</div>
+
+<input type="hidden" id="intSeafarer">
 
 <input type="date" id="intDate">
 
@@ -450,6 +474,52 @@ async function loadAll() {
 })
   
 loadAll()
+  let allSeafarers = []
+
+async function loadSeafarersForInterview(){
+  const { data } = await client.from("seafarers").select("*")
+  allSeafarers = data || []
+}
+
+document.getElementById("intSearch").addEventListener("keyup", function(){
+
+  const value = this.value.toLowerCase()
+  const dropdown = document.getElementById("intDropdown")
+
+  dropdown.innerHTML = ""
+
+  if(!value){
+    dropdown.style.display = "none"
+    return
+  }
+
+  const filtered = allSeafarers.filter(s =>
+    s.name.toLowerCase().includes(value) ||
+    s.rank.toLowerCase().includes(value)
+  )
+
+  if(filtered.length === 0){
+    dropdown.style.display = "none"
+    return
+  }
+
+  filtered.forEach(s=>{
+    const item = document.createElement("div")
+    item.style.padding = "6px"
+    item.style.cursor = "pointer"
+    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
+
+    item.onclick = () => {
+      document.getElementById("intSearch").value = s.name
+      document.getElementById("intSeafarer").value = s.id
+      dropdown.style.display = "none"
+    }
+
+    dropdown.appendChild(item)
+  })
+
+  dropdown.style.display = "block"
+})
 </script>
 
 </body>
