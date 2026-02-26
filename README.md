@@ -368,7 +368,7 @@ async function signOff(serviceId){
 }
 
 // ---------------- Load All ----------------
-async function loadAll(){
+async function loadAll() {
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
@@ -381,47 +381,48 @@ async function loadAll(){
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
- let positionExperience; // объявляем один раз перед циклом
-let currentRank;
+  let positionExperience, currentRank // объявляем один раз перед циклом
 
-for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
+  for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
 
-  const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
-  const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+    const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
+    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
 
-  // подсчёт стажа
-  positionExperience = calculateServiceDays(allPositions)
+    // подсчёт стажа
+    positionExperience = calculateServiceDays(allPositions)
 
-  // текущий ранг для подстановки
-  currentRank = allPositions
-    .filter(ss => ss.position && ss.position !== "Unknown")
-    .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
+    // текущий ранг для подстановки
+    currentRank = allPositions
+      .filter(ss => ss.position && ss.position !== "Unknown")
+      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
-  // формируем историю с реальным опытом
-  const historyList = allPositions
-    .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
-    .map(ss => {
-      const vessel = vessels?.find(v => v.id === ss.vessel_id)
-      const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+    // формируем историю контрактов
+    const historyList = allPositions
+      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
+      .map(ss => {
+        const vessel = vessels?.find(v => v.id === ss.vessel_id)
+        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
 
-      const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-      const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+        const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
+        const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
 
-      return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-        <b>${posName}</b> (${exp})<br>
-        ${vessel?.name || "Unknown"}<br>
-        ${ss.embarkation_date} → ${signOffDate}
-      </div>`
-    }).join("") || "-"
+        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+          <b>${posName}</b> (${exp})<br>
+          ${vessel?.name || "Unknown"}<br>
+          ${ss.embarkation_date} → ${signOffDate}
+        </div>`
+      }).join("") || "-"
 
-    const statusHTML = activeService
+    // статус ON BOARD / ASHORE
+    const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
-          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})<br>
-          since ${activeService.embarkation_date}<br><br>
+          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+          <br>since ${activeService.embarkation_date}<br><br>
           <button onclick="signOff('${activeService.id}')">Sign Off</button>
         </div>`
       : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
+    // интервью
     const intList = interviews?.filter(i=>i.seafarer_id===s.id)
       .map(i=>{
         let color="gray"
@@ -439,11 +440,14 @@ for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue
         </div>`
       }).join("") || "-"
 
+    // документы
     const docList = documents?.filter(d=>d.seafarer_id===s.id)
-      .map(d=>`<div>
-        <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
-        <button onclick="deleteDocument('${d.id}')">Delete</button>
-      </div>`).join("<br>") || "-"
+      .map(d=>`
+        <div>
+          <a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+          <button onclick="deleteDocument('${d.id}')">Delete</button>
+        </div>
+      `).join("<br>") || "-"
 
     table.innerHTML += `
       <tr>
@@ -459,6 +463,7 @@ for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue
       </tr>`
   }
 
+  // Вызовы setupDropdown остаются после цикла
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
