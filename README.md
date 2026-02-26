@@ -413,7 +413,6 @@ for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue
         ${ss.embarkation_date} → ${signOffDate}
       </div>`
     }).join("") || "-"
-}
 
     const statusHTML = activeService
       ? `<div style="color:green;font-weight:bold;">
