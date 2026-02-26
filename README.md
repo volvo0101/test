@@ -60,7 +60,7 @@ a { text-decoration:none; color:blue; }
 <select id="docType">
 <option value="Certificate">Certificate</option>
 <option value="Appraisal">Appraisal</option>
-<option value="Training Book">Appraisal</option>
+<option value="Training Book">Training Book</option>
 </select>
 <input type="file" id="fileInput" accept=".pdf,.zip" multiple>
 <button onclick="uploadDocument()">Upload</button>
