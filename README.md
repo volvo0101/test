@@ -95,7 +95,7 @@ a { text-decoration:none; color:blue; }
 <!-- Crew List -->
 <div class="card">
 <h3>Crew List</h3>
-<input type="text" id="searchInput" placeholder="Search by name or rank..." style="width:300px;margin-bottom:10px;">
+<input type="text" id="crewSearchInput" placeholder="Search by name or rank..." style="width:300px;margin-bottom:10px;">
 <button onclick="loadAll()">Refresh</button>
 <table>
 <thead>
@@ -316,8 +316,22 @@ async function loadAll() {
   })
 }
 
-// ---------------- Search ----------------
-document.getElementById("searchInput").addEventListener("input", loadAll)
+// ---------------- Smart Crew List ----------------
+document.getElementById("crewSearchInput").addEventListener("input", loadAll)
+
+async function loadAll() {
+  const { data: seafarers } = await client.from("seafarers").select("*")
+  const { data: interviews } = await client.from("interviews").select("*")
+  const { data: documents } = await client.from("documents").select("*")
+  const { data: vessels } = await client.from("vessels").select("*")
+  const { data: seaService } = await client.from("sea_service").select("*")
+
+  allSeafarers = seafarers || []
+
+  const table = document.getElementById("crewTable")
+  table.innerHTML = ""
+
+  const searchValue = document.getElementById("crewSearchInput").value.toLowerCase()
 
 // ---------------- Interview Dropdown ----------------
 document.getElementById("intSearch").addEventListener("input", function(){
