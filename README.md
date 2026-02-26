@@ -368,20 +368,22 @@ async function loadAll(){
     const positionExperience = calculateServiceDays(allPositions)
 
     // Получаем текущий ранг (последняя позиция по дате)
+// 1. Получаем текущий ранг: последняя реальная позиция по дате
 const currentRank = allPositions
-  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))[0]?.position || "Unknown"
+  .filter(ss => ss.position && ss.position !== "Unknown")
+  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
-// Формируем историю с заменой "Unknown" на текущий ранг
+// 2. Формируем историю
 const historyList = allPositions
-  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-  .map(ss=>{
-    const vessel = vessels?.find(v=>v.id===ss.vessel_id)
+  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
+  .map(ss => {
+    const vessel = vessels?.find(v => v.id === ss.vessel_id)
     const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
 
-    // Если позиции нет или она "Unknown", используем текущий ранг
+    // Берём позицию из записи, если нет — подставляем текущий ранг
     const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
 
-    const expKey = posName.toLowerCase() // для поиска опыта без учёта регистра
+    const expKey = posName.toLowerCase()
     const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
