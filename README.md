@@ -143,8 +143,7 @@ a { text-decoration:none; color:blue; }
 
 <script>
 const { createClient } = supabase
-const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
-"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
+const client = createClient("чччч","чччч")
 let allSeafarers = []
 
 // ---------------- Helpers ----------------
@@ -175,55 +174,48 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
     })
     dropdown.style.display = filtered.length ? "block" : "none"
   })
-// Подсчет стажа по должностям в днях, месяцах и годах
-function calculateServiceDays(allPositions){
-  const experience = {} // ключ = должность, значение = {days, months, years}
+}
 
+// Подсчет стажа по должностям
+function calculateServiceDays(allPositions){
+  const experience = {}
   allPositions.forEach(pos=>{
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
     let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
 
-    const years = Math.floor(totalDays / 360) // 12 месяцев * 30 дней
+    const years = Math.floor(totalDays / 360)
     totalDays -= years * 360
     const months = Math.floor(totalDays / 30)
     totalDays -= months * 30
     const days = totalDays
 
     if(!experience[pos.position]) experience[pos.position] = {years:0, months:0, days:0}
-
     experience[pos.position].years += years
     experience[pos.position].months += months
     experience[pos.position].days += days
 
-    // корректируем переполнение дней и месяцев
     if(experience[pos.position].days >= 30){
       experience[pos.position].months += Math.floor(experience[pos.position].days / 30)
-      experience[pos.position].days = experience[pos.position].days % 30
+      experience[pos.position].days %= 30
     }
     if(experience[pos.position].months >= 12){
       experience[pos.position].years += Math.floor(experience[pos.position].months / 12)
-      experience[pos.position].months = experience[pos.position].months % 12
+      experience[pos.position].months %= 12
     }
   })
-
   return experience
 }
 
-// Формат для вывода
 function formatExperience(exp){
   return `${exp.years}y ${exp.months}m ${exp.days}d`
 }
-// ---------------- Close all dropdowns on click outside ----------------
+
+// Закрыть dropdown при клике вне его
 document.addEventListener("click", e => {
-  [
-    "docSeafarerDropdown",
-    "intDropdown",
-    "assignSeafarerDropdown",
-    "assignVesselDropdown"
-  ].forEach(id => {
+  ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
     const dd = document.getElementById(id)
-    if(dd && !e.target.closest(`#${id.replace("Dropdown","Search")}`)) dd.style.display = "none"
+    if(dd && !e.target.closest(`#${id.replace("Dropdown","Search")}`)) dd.style.display="none"
   })
 })
 
@@ -272,7 +264,7 @@ async function addInterview(){
   loadAll()
 }
 
-// ---------------- Upload ----------------
+// ---------------- Upload Documents ----------------
 async function uploadDocument(){
   const seafarer_id = document.getElementById("docSeafarer").value
   const files = document.getElementById("fileInput").files
@@ -406,22 +398,16 @@ async function loadAll(){
       </tr>`
   }
 
-  // Setup dropdowns
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
 }
+
 // ---------------- Search Seafarer ----------------
-async function searchSeafarer(){
-
+async function searchSeafarer() {
   const searchValue = document.getElementById("crewSearchInput")?.value.trim()
-
-  if(!searchValue){
-    loadAll()
-    return
-  }
-
-  loadAll() // фильтрация уже встроена в loadAll
+  loadAll()
+}
 
 // ---------------- Initial Load ----------------
 loadAll()
