@@ -155,7 +155,7 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
   document.addEventListener("click", e=>{
     if(!e.target.closest(`#${inputId}`))
-      dropdown.style.display = "none"
+    document.getElementById("assignSeafarerDropdown")?.style.setProperty("display", "none");
   })
 }
 
