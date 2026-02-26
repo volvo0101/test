@@ -372,8 +372,9 @@ async function loadAll(){
   .map(ss=>{
     const vessel = vessels?.find(v=>v.id===ss.vessel_id)
     const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-    const posName = ss.position || "Unknown" // используем безопасное значение
-    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+    const posName = ss.position || "Unknown" // теперь реально выводим позицию
+    const expKey = posName.toLowerCase() // для поиска опыта без учёта регистра
+    const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
       <b>${posName}</b> (${exp})<br>
       ${vessel?.name || "Unknown"}<br>
