@@ -382,20 +382,24 @@ async function loadAll(){
       .filter(ss => ss.position && ss.position !== "Unknown")
       .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))[0]?.position || "Unknown"
 
-    const historyList = allPositions
-      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-      .map(ss=>{
-        const vessel = vessels?.find(v=>v.id===ss.vessel_id)
-        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-        const posName = ss.position && ss.position!=="Unknown" ? ss.position : currentRank
-        const expKey = posName.toLowerCase()
-        const exp = positionExperience[expKey] ? formatExperience(positionExperience[expKey]) : "-"
-        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-          <b>${posName}</b> (${exp})<br>
-          ${vessel?.name || "Unknown"}<br>
-          ${ss.embarkation_date} → ${signOffDate}
-        </div>`
-      }).join("") || "-"
+   const historyList = allPositions
+  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
+  .map(ss => {
+    const vessel = vessels?.find(v => v.id === ss.vessel_id)
+    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+
+    // Берём позицию из записи, если нет — подставляем текущий ранг
+    const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
+
+    // Стаж берём по точному названию должности
+    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+
+    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+      <b>${posName}</b> (${exp})<br>
+      ${vessel?.name || "Unknown"}<br>
+      ${ss.embarkation_date} → ${signOffDate}
+    </div>`
+  }).join("") || "-"
 
     const statusHTML = activeService
       ? `<div style="color:green;font-weight:bold;">
