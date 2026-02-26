@@ -381,34 +381,39 @@ async function loadAll(){
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
+ let positionExperience; // объявляем один раз перед циклом
+let currentRank;
 
-    const allPositions = seaService?.filter(ss => ss.seafarer_id===s.id) || []
-    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date==="")
-    const positionExperience = calculateServiceDays(allPositions)
+for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
 
-    // 1. Текущий ранг морского работника
-const positionExperience = calculateServiceDays(allPositions)
-const currentRank = allPositions
-  .filter(ss => ss.position && ss.position !== "Unknown")
-  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
+  const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
+  const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
 
-// 2. Формируем историю
-const historyList = allPositions
-  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
-  .map(ss => {
-    const vessel = vessels?.find(v => v.id === ss.vessel_id)
-    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+  // подсчёт стажа
+  positionExperience = calculateServiceDays(allPositions)
 
-    const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+  // текущий ранг для подстановки
+  currentRank = allPositions
+    .filter(ss => ss.position && ss.position !== "Unknown")
+    .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
-    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-      <b>${posName}</b> (${exp})<br>
-      ${vessel?.name || "Unknown"}<br>
-      ${ss.embarkation_date} → ${signOffDate}
-    </div>`
-  }).join("") || "-"
+  // формируем историю с реальным опытом
+  const historyList = allPositions
+    .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
+    .map(ss => {
+      const vessel = vessels?.find(v => v.id === ss.vessel_id)
+      const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+
+      const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
+      const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+
+      return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+        <b>${posName}</b> (${exp})<br>
+        ${vessel?.name || "Unknown"}<br>
+        ${ss.embarkation_date} → ${signOffDate}
+      </div>`
+    }).join("") || "-"
+}
 
     const statusHTML = activeService
       ? `<div style="color:green;font-weight:bold;">
