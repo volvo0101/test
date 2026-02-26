@@ -423,10 +423,10 @@ const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.dise
 // Подсчёт стажа по должностям
 const positionExperience = calculateServiceDays(allPositions)
 
-  // Setup dropdowns
-  setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
+ // Setup dropdowns
+setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
+setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
+setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
 }
 
 // ---------------- Search Seafarer ----------------
