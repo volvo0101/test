@@ -31,15 +31,31 @@ a { text-decoration:none; color:blue; }
 
 <div class="card">
 <h3>Add Interview</h3>
+
 <select id="intSeafarer"></select>
+
 <input type="date" id="intDate">
+
 <select id="intResult">
 <option value="">Select decision</option>
 <option value="Approved">Approved</option>
 <option value="Standby">Standby</option>
 <option value="Rejected">Rejected</option>
 </select>
-<input id="intComments" placeholder="Comment">
+
+<textarea 
+  id="intComments"
+  rows="4"
+  placeholder="Interview comments..."
+  style="
+    width:300px;
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    resize:vertical;
+  "
+></textarea>
+
 <button onclick="addInterview()">Add Interview</button>
 </div>
 
@@ -379,10 +395,14 @@ async function loadAll() {
       ">
         ${i.decision}
       </span>
-      <div style="margin-top:4px;color:#333;">
-        ${i.comment ? i.comment : ""}
-      </div>
-    </div>
+    <div style="
+  margin-top:6px;
+  color:#333;
+  white-space:pre-wrap;
+  word-break:break-word;
+">
+  ${i.comment ? i.comment : ""}
+</div>
   `
 }).join("") || "-"
 
