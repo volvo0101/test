@@ -259,18 +259,20 @@ async function loadAll() {
       <button onclick="signOff('${activeService.id}')">Sign Off</button></div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
     const intList = interviews?.filter(i => i.seafarer_id === s.id)
-      .map(i => {
-        let color="gray"
-        if(i.decision==="Approved") color="green"
-        if(i.decision==="Standby") color="orange"
-        if(i.decision==="Rejected") color="red"
-        return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-          <b>${i.interview_date}</b>
-          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-            ${i.decision}</span>
-          <div style="white-space:pre-wrap;margin-top:6px;">${i.comment || ""}</div>
-        </div>`
-      }).join("") || "-"
+  .map(i => {
+    let color="gray"
+    if(i.decision==="Approved") color="green"
+    if(i.decision==="Standby") color="orange"
+    if(i.decision==="Rejected") color="red"
+    return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
+      <b>${i.interview_date}</b>
+      <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+        ${i.decision}</span>
+      <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+        ${i.comment || ""}
+      </div>
+    </div>`
+  }).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
       .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a> 
