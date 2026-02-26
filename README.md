@@ -14,6 +14,7 @@ table { width:100%; border-collapse: collapse; margin-top:10px; }
 th, td { border:1px solid #ddd; padding:8px; vertical-align: top; }
 th { background:#eee; }
 a { text-decoration:none; color:blue; }
+.dropdown { position:absolute; background:white; border:1px solid #ccc; max-height:200px; overflow-y:auto; display:none; z-index:1000; width:100%; }
 </style>
 </head>
 
@@ -21,6 +22,7 @@ a { text-decoration:none; color:blue; }
 
 <h2>⚓ Crew Management System</h2>
 
+<!-- Add Seafarer -->
 <div class="card">
 <h3>Add Seafarer</h3>
 <input id="internal_id" placeholder="Internal ID">
@@ -29,41 +31,26 @@ a { text-decoration:none; color:blue; }
 <button onclick="addSeafarer()">Add</button>
 </div>
 
+<!-- Add Interview -->
 <div class="card">
 <h3>Add Interview</h3>
 <div style="position:relative;">
   <input type="text" id="intSearch" placeholder="Type name or rank..." autocomplete="off">
-  <div id="intDropdown" style="
-    position:absolute;
-    background:white;
-    border:1px solid #ccc;
-    width:200%;
-    max-height:200px;
-    overflow-y:auto;
-    display:none;
-    z-index:1000;"></div>
+  <div id="intDropdown" class="dropdown"></div>
 </div>
-
 <input type="hidden" id="intSeafarer">
 <input type="date" id="intDate">
-
 <select id="intResult">
 <option value="">Select decision</option>
 <option value="Approved">Approved</option>
 <option value="Standby">Standby</option>
 <option value="Rejected">Rejected</option>
 </select>
-
 <textarea id="intComments" rows="4" placeholder="Interview comments..."></textarea>
 <button onclick="addInterview()">Add Interview</button>
 </div>
 
-<div class="card">
-<h3>Crew List</h3>
-<input type="text" id="searchInput" placeholder="Search by name or rank...">
-<button onclick="loadAll()">Refresh</button>
-</div>
-
+<!-- Upload PDF -->
 <div class="card">
 <h3>Upload PDF</h3>
 <select id="docSeafarer"></select>
@@ -75,6 +62,7 @@ a { text-decoration:none; color:blue; }
 <button onclick="uploadDocument()">Upload</button>
 </div>
 
+<!-- Add Vessel -->
 <div class="card">
 <h3>Add Vessel</h3>
 <input id="vesselName" placeholder="Vessel Name">
@@ -82,10 +70,17 @@ a { text-decoration:none; color:blue; }
 <button onclick="addVessel()">Add Vessel</button>
 </div>
 
+<!-- Assign to Vessel -->
 <div class="card">
 <h3>Assign to Vessel</h3>
-<select id="assignSeafarer"></select>
-<select id="assignVessel"></select>
+<input type="text" id="assignSeafarerSearch" placeholder="Type name or rank...">
+<input type="hidden" id="assignSeafarer">
+<div id="assignSeafarerDropdown" class="dropdown"></div>
+
+<input type="text" id="assignVesselSearch" placeholder="Type vessel name...">
+<input type="hidden" id="assignVessel">
+<div id="assignVesselDropdown" class="dropdown"></div>
+
 <label>Embarkation Date</label>
 <input type="date" id="embarkDate">
 <label>Disembarkation Date</label>
@@ -93,9 +88,10 @@ a { text-decoration:none; color:blue; }
 <button onclick="assignToVessel()">Save</button>
 </div>
 
+<!-- Crew List -->
 <div class="card">
 <h3>Crew List</h3>
-<input type="text" id="searchInput2" placeholder="Search by name or rank..." style="width:300px;margin-bottom:10px;">
+<input type="text" id="searchInput" placeholder="Search by name or rank..." style="width:300px;margin-bottom:10px;">
 <button onclick="loadAll()">Refresh</button>
 <table>
 <thead>
@@ -114,8 +110,7 @@ a { text-decoration:none; color:blue; }
 
 <script>
 const { createClient } = supabase
-const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
-"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
+const client = createClient("чччч", "чччч")
 let allSeafarers = []
 
 // ---------------- Seafarers ----------------
@@ -136,10 +131,8 @@ async function addSeafarer(){
 
 function editRank(id, currentRank){
   const cell = document.getElementById("rank_text_" + id).parentElement
-  cell.innerHTML = `
-    <input id="rank_edit_${id}" value="${currentRank}" style="width:70%">
-    <button onclick="updateRank('${id}')">💾</button>
-  `
+  cell.innerHTML = `<input id="rank_edit_${id}" value="${currentRank}" style="width:70%">
+    <button onclick="updateRank('${id}')">💾</button>`
 }
 
 async function updateRank(id){
@@ -236,22 +229,13 @@ async function loadAll() {
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
-
   allSeafarers = seafarers || []
 
   // Заполняем селекты
-  ["intSeafarer","docSeafarer","assignSeafarer"].forEach(id=>{
+  ["intSeafarer","docSeafarer"].forEach(id=>{
     const sel = document.getElementById(id)
     sel.innerHTML = ""
-    allSeafarers.forEach(s=>{
-      sel.innerHTML += `<option value="${s.id}">${s.name}</option>`
-    })
-  })
-
-  const assignVesselSelect = document.getElementById("assignVessel")
-  assignVesselSelect.innerHTML = ""
-  vessels?.forEach(v=>{
-    assignVesselSelect.innerHTML += `<option value="${v.id}">${v.name}</option>`
+    allSeafarers.forEach(s=> sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
   })
 
   const table = document.getElementById("crewTable")
@@ -265,17 +249,13 @@ async function loadAll() {
         const vessel = vessels?.find(v => v.id === ss.vessel_id)
         const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
         return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-          <b>${vessel ? vessel.name : "Unknown"}</b><br>
-          ${ss.embarkation_date} → ${signOffDate}
-        </div>`
+          <b>${vessel ? vessel.name : "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}</div>`
       }).join("") || "-"
 
     const statusHTML = activeService ? `<div style="color:green;font-weight:bold;">
       ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
-      <br>since ${activeService.embarkation_date}
-      <br><br>
-      <button onclick="signOff('${activeService.id}')">Sign Off</button>
-    </div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
+      <br>since ${activeService.embarkation_date}<br><br>
+      <button onclick="signOff('${activeService.id}')">Sign Off</button></div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
     const intList = interviews?.filter(i => i.seafarer_id === s.id)
       .map(i => {
@@ -286,30 +266,29 @@ async function loadAll() {
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
           <b>${i.interview_date}</b>
           <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-            ${i.decision}
-          </span>
+            ${i.decision}</span>
           <div style="white-space:pre-wrap;margin-top:6px;">${i.comment || ""}</div>
         </div>`
       }).join("") || "-"
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
-      .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a> <button onclick="deleteDocument('${d.id}')">Delete</button></div>`).join("<br>") || "-"
+      .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a> 
+      <button onclick="deleteDocument('${d.id}')">Delete</button></div>`).join("<br>") || "-"
 
-    table.innerHTML += `
-      <tr>
-        <td>${s.name}</td>
-        <td><span id="rank_text_${s.id}">${s.rank}</span> <button onclick="editRank('${s.id}', '${s.rank}')">✏</button></td>
-        <td>${statusHTML}</td>
-        <td>${historyList}</td>
-        <td>${intList}</td>
-        <td>${docList}</td>
-      </tr>`
+    table.innerHTML += `<tr>
+      <td>${s.name}</td>
+      <td><span id="rank_text_${s.id}">${s.rank}</span> 
+        <button onclick="editRank('${s.id}', '${s.rank}')">✏</button></td>
+      <td>${statusHTML}</td>
+      <td>${historyList}</td>
+      <td>${intList}</td>
+      <td>${docList}</td>
+    </tr>`
   })
 }
 
 // ---------------- Search ----------------
 document.getElementById("searchInput").addEventListener("input", loadAll)
-document.getElementById("searchInput2").addEventListener("input", loadAll)
 
 // ---------------- Interview Dropdown ----------------
 document.getElementById("intSearch").addEventListener("input", function(){
@@ -321,16 +300,50 @@ document.getElementById("intSearch").addEventListener("input", function(){
   if(filtered.length===0){ dropdown.style.display="none"; return }
   filtered.forEach(s=>{
     const item = document.createElement("div")
-    item.style.padding="8px"
-    item.style.cursor="pointer"
-    item.style.borderBottom="1px solid #eee"
+    item.style.padding="8px"; item.style.cursor="pointer"; item.style.borderBottom="1px solid #eee"
     item.innerHTML=`<b>${s.name}</b> — ${s.rank}`
     item.onclick=()=>{ document.getElementById("intSearch").value=s.name; document.getElementById("intSeafarer").value=s.id; dropdown.style.display="none"}
     dropdown.appendChild(item)
   })
   dropdown.style.display="block"
 })
-document.addEventListener("click", function(e){ if(!e.target.closest("#intSearch")) document.getElementById("intDropdown").style.display="none" })
+document.addEventListener("click", e => { if(!e.target.closest("#intSearch")) document.getElementById("intDropdown").style.display="none" })
+
+// ---------------- Assign Vessel Dropdowns ----------------
+document.getElementById("assignSeafarerSearch").addEventListener("input", function(){
+  const val = this.value.toLowerCase()
+  const dropdown = document.getElementById("assignSeafarerDropdown")
+  dropdown.innerHTML = ""
+  if(!val){ dropdown.style.display="none"; return }
+  const filtered = allSeafarers.filter(s => s.name.toLowerCase().includes(val) || s.rank.toLowerCase().includes(val))
+  filtered.forEach(s=>{
+    const item = document.createElement("div")
+    item.style.padding="6px"; item.style.cursor="pointer"
+    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
+    item.onclick = ()=>{ document.getElementById("assignSeafarerSearch").value=s.name; document.getElementById("assignSeafarer").value=s.id; dropdown.style.display="none" }
+    dropdown.appendChild(item)
+  })
+  dropdown.style.display="block"
+})
+document.addEventListener("click", e => { if(!e.target.closest("#assignSeafarerSearch")) document.getElementById("assignSeafarerDropdown").style.display="none" })
+
+document.getElementById("assignVesselSearch").addEventListener("input", async function(){
+  const val = this.value.toLowerCase()
+  const dropdown = document.getElementById("assignVesselDropdown")
+  dropdown.innerHTML = ""
+  if(!val){ dropdown.style.display="none"; return }
+  const vessels = await client.from("vessels").select("*").then(r=>r.data||[])
+  const filtered = vessels.filter(v => v.name.toLowerCase().includes(val))
+  filtered.forEach(v=>{
+    const item = document.createElement("div")
+    item.style.padding="6px"; item.style.cursor="pointer"
+    item.innerHTML = v.name
+    item.onclick = ()=>{ document.getElementById("assignVesselSearch").value=v.name; document.getElementById("assignVessel").value=v.id; dropdown.style.display="none" }
+    dropdown.appendChild(item)
+  })
+  dropdown.style.display="block"
+})
+document.addEventListener("click", e => { if(!e.target.closest("#assignVesselSearch")) document.getElementById("assignVesselDropdown").style.display="none" })
 
 // ---------------- Initial Load ----------------
 loadAll()
