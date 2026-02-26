@@ -140,7 +140,8 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
     const filtered = data.filter(d=>fields.some(f=>d[f]?.toLowerCase().includes(val)))
     filtered.forEach(d=>{
       const item = document.createElement("div")
-      item.style.padding="6px"; item.style.cursor="pointer"
+      item.style.padding="6px"; 
+      item.style.cursor="pointer"; 
       item.style.borderBottom = "1px solid #eee"
       item.innerHTML = fields.map(f=>d[f]).join(" — ")
       item.onclick = ()=>{
@@ -152,12 +153,20 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
     })
     dropdown.style.display = filtered.length ? "block" : "none"
   })
-
-  document.addEventListener("click", e=>{
-    if(!e.target.closest(`#${inputId}`))
-    document.getElementById("assignSeafarerDropdown")?.style.setProperty("display", "none");
-  })
 }
+
+// ---------------- Close all dropdowns on click outside ----------------
+document.addEventListener("click", e => {
+  [
+    "docSeafarerDropdown",
+    "intDropdown",
+    "assignSeafarerDropdown",
+    "assignVesselDropdown"
+  ].forEach(id => {
+    const dd = document.getElementById(id)
+    if(dd && !e.target.closest(`#${id.replace("Dropdown","Search")}`)) dd.style.display = "none"
+  })
+})
 
 // ---------------- Seafarers ----------------
 async function addSeafarer(){
