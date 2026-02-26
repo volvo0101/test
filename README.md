@@ -178,9 +178,11 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 }
 
 // Подсчет стажа по должностям
-function calculateServiceDays(allPositions){
-  const experience = {}
-  allPositions.forEach(pos=>{
+function calculateServiceDays(allPositions) {
+  const experience = {} // ключ = должность, значение = {days, months, years}
+
+  allPositions.forEach(pos => {
+    const position = pos.position || "Unknown"
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
     let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
@@ -191,20 +193,23 @@ function calculateServiceDays(allPositions){
     totalDays -= months * 30
     const days = totalDays
 
-    if(!experience[pos.position]) experience[pos.position] = {years:0, months:0, days:0}
-    experience[pos.position].years += years
-    experience[pos.position].months += months
-    experience[pos.position].days += days
+    if(!experience[position]) experience[position] = {years:0, months:0, days:0}
 
-    if(experience[pos.position].days >= 30){
-      experience[pos.position].months += Math.floor(experience[pos.position].days / 30)
-      experience[pos.position].days %= 30
+    experience[position].years += years
+    experience[position].months += months
+    experience[position].days += days
+
+    // корректируем переполнение
+    if(experience[position].days >= 30){
+      experience[position].months += Math.floor(experience[position].days / 30)
+      experience[position].days = experience[position].days % 30
     }
-    if(experience[pos.position].months >= 12){
-      experience[pos.position].years += Math.floor(experience[pos.position].months / 12)
-      experience[pos.position].months %= 12
+    if(experience[position].months >= 12){
+      experience[position].years += Math.floor(experience[position].months / 12)
+      experience[position].months = experience[position].months % 12
     }
   })
+
   return experience
 }
 
@@ -367,6 +372,7 @@ async function loadAll(){
       .map(ss=>{
         const vessel = vessels?.find(v=>v.id===ss.vessel_id)
         const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+        const posName = ss.position || "Unknown"
         const exp = positionExperience[ss.position] ? formatExperience(positionExperience[ss.position]) : "-"
         return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
           <b>${ss.position}</b> (${exp})<br>
