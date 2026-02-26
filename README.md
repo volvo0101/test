@@ -388,11 +388,10 @@ async function loadAll(){
     const positionExperience = calculateServiceDays(allPositions)
 
     // 1. Текущий ранг морского работника
+const positionExperience = calculateServiceDays(allPositions)
 const currentRank = allPositions
   .filter(ss => ss.position && ss.position !== "Unknown")
-  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position
-  || s.rank  // fallback на основной ранк из таблицы seafarers
-  || "Not Assigned"
+  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
 // 2. Формируем историю
 const historyList = allPositions
@@ -401,12 +400,8 @@ const historyList = allPositions
     const vessel = vessels?.find(v => v.id === ss.vessel_id)
     const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
 
-    // Должность для отображения
     const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-
-    // Опыт берём по реальной позиции записи, если она есть
-  const realPosition = ss.position && ss.position !== "Unknown" ? ss.position : null
-const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "-"
+    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
       <b>${posName}</b> (${exp})<br>
