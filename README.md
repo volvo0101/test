@@ -41,18 +41,18 @@ a { text-decoration:none; color:blue; }
 <input type="hidden" id="intSeafarer">
 <input type="date" id="intDate">
 <select id="intResult">
-<option value="">Select decision</option>
-<option value="Approved">Approved</option>
-<option value="Standby">Standby</option>
-<option value="Rejected">Rejected</option>
+  <option value="">Select decision</option>
+  <option value="Approved">Approved</option>
+  <option value="Standby">Standby</option>
+  <option value="Rejected">Rejected</option>
 </select>
 <textarea id="intComments" rows="4" placeholder="Interview comments..."></textarea>
 <button onclick="addInterview()">Add Interview</button>
 </div>
 
-<!-- Upload PDF с умным поиском моряков -->
+<!-- Upload PDF/ZIP -->
 <div class="card">
-<h3>Upload PDF</h3>
+<h3>Upload Document</h3>
 <input type="text" id="docSeafarerSearch" placeholder="Type name or rank..." autocomplete="off">
 <input type="hidden" id="docSeafarer">
 <div id="docSeafarerDropdown" class="dropdown"></div>
@@ -61,6 +61,7 @@ a { text-decoration:none; color:blue; }
 <option value="Certificate">Certificate</option>
 <option value="Appraisal">Appraisal</option>
 <option value="Training Book">Training Book</option>
+<option value="Promotion">Promotion</option>
 </select>
 <input type="file" id="fileInput" accept=".pdf,.zip" multiple>
 <button onclick="uploadDocument()">Upload</button>
@@ -118,16 +119,48 @@ const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
 "sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
 let allSeafarers = []
 
+// ---------------- Helpers ----------------
+function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
+  const input = document.getElementById(inputId)
+  const hidden = hiddenId ? document.getElementById(hiddenId) : null
+  const dropdown = dropdownId ? document.getElementById(dropdownId) : null
+
+  input.addEventListener("input", ()=>{
+    const val = input.value.toLowerCase()
+    if(!dropdown) return
+    dropdown.innerHTML = ""
+    if(!val){ dropdown.style.display="none"; return }
+
+    const filtered = data.filter(d=>fields.some(f=>d[f]?.toLowerCase().includes(val)))
+    filtered.forEach(d=>{
+      const item = document.createElement("div")
+      item.style.padding="6px"; item.style.cursor="pointer"
+      item.style.borderBottom = "1px solid #eee"
+      item.innerHTML = fields.map(f=>d[f]).join(" — ")
+      item.onclick = ()=>{
+        input.value = d.name || d[fields[0]]
+        if(hidden) hidden.value = d.id
+        dropdown.style.display="none"
+      }
+      dropdown.appendChild(item)
+    })
+    dropdown.style.display = filtered.length ? "block" : "none"
+  })
+
+  document.addEventListener("click", e=>{
+    if(!e.target.closest(`#${inputId}`))
+      dropdown.style.display = "none"
+  })
+}
+
 // ---------------- Seafarers ----------------
 async function addSeafarer(){
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
   const internal_id = document.getElementById("internal_id").value
   if(!name || !rank) return alert("Fill all fields")
-
   const { error } = await client.from("seafarers").insert([{ name, rank, internal_id }])
   if(error) return alert(error.message)
-
   document.getElementById("name").value = ""
   document.getElementById("rank").value = ""
   document.getElementById("internal_id").value = ""
@@ -144,7 +177,6 @@ async function updateRank(id){
   const input = document.getElementById("rank_edit_" + id)
   const newRank = input.value
   if(!newRank) return alert("Rank cannot be empty")
-
   const { error } = await client.from("seafarers").update({ rank: newRank }).eq("id", id)
   if(error) return alert(error.message)
   loadAll()
@@ -158,7 +190,6 @@ async function addInterview(){
   const comment = document.getElementById("intComments").value
   if(!seafarer_id) return alert("Select seafarer")
   if(!interview_date) return alert("Select interview date")
-
   await client.from("interviews").insert([{ seafarer_id, interview_date, decision, comment }])
   document.getElementById("intComments").value = ""
   document.getElementById("intDate").value = ""
@@ -167,77 +198,49 @@ async function addInterview(){
   loadAll()
 }
 
-// ---------------- Upload PDF ----------------
-async function uploadDocument() {
+// ---------------- Upload ----------------
+async function uploadDocument(){
   const seafarer_id = document.getElementById("docSeafarer").value
   const files = document.getElementById("fileInput").files
   const doc_type = document.getElementById("docType").value
   if(!seafarer_id || files.length === 0) return alert("Select seafarer and file")
-
-  for (let file of files){
+  for(let file of files){
     const filePath = `${seafarer_id}/${Date.now()}_${file.name}`
     await client.storage.from("crew-documents").upload(filePath, file)
     const { data } = client.storage.from("crew-documents").getPublicUrl(filePath)
     await client.from("documents").insert([{ seafarer_id, file_name: file.name, file_url: data.publicUrl, doc_type }])
   }
-
   loadAll()
 }
 
-// ---------------- Dropdown умного поиска моряка ----------------
-document.getElementById("docSeafarerSearch").addEventListener("input", function(){
-  const value = this.value.toLowerCase()
-  const dropdown = document.getElementById("docSeafarerDropdown")
-  dropdown.innerHTML = ""
-  if(!value){ dropdown.style.display="none"; return }
-
-  const filtered = allSeafarers.filter(s =>
-    (s.name?.toLowerCase().includes(value)) ||
-    (s.rank?.toLowerCase().includes(value))
-  )
-
-  filtered.forEach(s=>{
-    const item = document.createElement("div")
-    item.style.padding="6px"
-    item.style.cursor="pointer"
-    item.style.borderBottom = "1px solid #eee"
-    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
-    item.onclick = ()=>{
-      document.getElementById("docSeafarerSearch").value = s.name
-      document.getElementById("docSeafarer").value = s.id
-      dropdown.style.display = "none"
-    }
-    dropdown.appendChild(item)
-  })
-
-  dropdown.style.display = filtered.length ? "block" : "none"
-})
-
-// Закрытие dropdown при клике вне
-document.addEventListener("click", e => {
-  if(!e.target.closest("#docSeafarerSearch")) 
-    document.getElementById("docSeafarerDropdown").style.display="none"
-})
+async function deleteDocument(id){
+  if(!confirm("Delete document?")) return
+  const { data: doc } = await client.from("documents").select("*").eq("id", id).single()
+  if(doc?.file_url){
+    const filePath = doc.file_url.split("/crew-documents/")[1]
+    await client.storage.from("crew-documents").remove([filePath])
+  }
+  await client.from("documents").delete().eq("id", id)
+  loadAll()
+}
 
 // ---------------- Vessels ----------------
-async function addVessel() {
+async function addVessel(){
   const name = document.getElementById("vesselName").value
   const abbreviation = document.getElementById("vesselAbbr").value
   if(!name || !abbreviation) return alert("Fill all fields")
-
   await client.from("vessels").insert([{ name, abbreviation }])
   document.getElementById("vesselName").value = ""
   document.getElementById("vesselAbbr").value = ""
   loadAll()
 }
 
-async function assignToVessel() {
+async function assignToVessel(){
   const seafarer_id = document.getElementById("assignSeafarer").value
   const vessel_id = document.getElementById("assignVessel").value
   const embarkation_date = document.getElementById("embarkDate").value
   const disembarkation_date = document.getElementById("disembarkDate").value || null
   if(!seafarer_id || !vessel_id || !embarkation_date) return alert("All fields required")
-
   await client.from("sea_service").insert([{ seafarer_id, vessel_id, embarkation_date, disembarkation_date }])
   loadAll()
 }
@@ -250,143 +253,74 @@ async function signOff(serviceId){
 }
 
 // ---------------- Load All ----------------
-async function loadAll() {
+async function loadAll(){
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
   allSeafarers = seafarers || []
-
-  // Заполняем селекты
-  ["intSeafarer","docSeafarer"].forEach(id=>{
-    const sel = document.getElementById(id)
-    sel.innerHTML = ""
-    allSeafarers.forEach(s=> sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
-  })
-
-  const table = document.getElementById("crewTable")
-  table.innerHTML = ""
-
-  allSeafarers.forEach(s => {
-    const activeService = seaService?.find(ss => ss.seafarer_id === s.id && (!ss.disembarkation_date || ss.disembarkation_date === ""))
-    const historyList = seaService?.filter(ss => ss.seafarer_id === s.id)
-      .sort((a,b)=> new Date(b.embarkation_date) - new Date(a.embarkation_date))
-      .map(ss=>{
-        const vessel = vessels?.find(v => v.id === ss.vessel_id)
-        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-          <b>${vessel ? vessel.name : "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}</div>`
-      }).join("") || "-"
-
-    const statusHTML = activeService ? `<div style="color:green;font-weight:bold;">
-      ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
-      <br>since ${activeService.embarkation_date}<br><br>
-      <button onclick="signOff('${activeService.id}')">Sign Off</button></div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
-
-    const intList = interviews?.filter(i => i.seafarer_id === s.id)
-  .map(i => {
-    let color="gray"
-    if(i.decision==="Approved") color="green"
-    if(i.decision==="Standby") color="orange"
-    if(i.decision==="Rejected") color="red"
-    return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-      <b>${i.interview_date}</b>
-      <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-        ${i.decision}</span>
-      <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px; max-width:250px;">
-        ${i.comment || ""}
-      </div>
-    </div>`
-  }).join("") || "-"
-
-    const docList = documents?.filter(d => d.seafarer_id === s.id)
-      .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a> 
-      <button onclick="deleteDocument('${d.id}')">Delete</button></div>`).join("<br>") || "-"
-
-    table.innerHTML += `<tr>
-      <td>${s.name}</td>
-      <td><span id="rank_text_${s.id}">${s.rank}</span> 
-        <button onclick="editRank('${s.id}', '${s.rank}')">✏</button></td>
-      <td>${statusHTML}</td>
-      <td>${historyList}</td>
-      <td>${intList}</td>
-      <td>${docList}</td>
-    </tr>`
-  })
-}
-
-// ---------------- Smart Crew List ----------------
-document.getElementById("crewSearchInput").addEventListener("input", loadAll)
-
-async function loadAll() {
-  const { data: seafarers } = await client.from("seafarers").select("*")
-  const { data: interviews } = await client.from("interviews").select("*")
-  const { data: documents } = await client.from("documents").select("*")
-  const { data: vessels } = await client.from("vessels").select("*")
-  const { data: seaService } = await client.from("sea_service").select("*")
-
-  allSeafarers = seafarers || []
-
-  const table = document.getElementById("crewTable")
-  table.innerHTML = ""
 
   const searchValue = document.getElementById("crewSearchInput").value.toLowerCase()
+  const table = document.getElementById("crewTable")
+  table.innerHTML = ""
 
-// ---------------- Interview Dropdown ----------------
-document.getElementById("intSearch").addEventListener("input", function(){
-  const value = this.value.toLowerCase()
-  const dropdown = document.getElementById("intDropdown")
-  dropdown.innerHTML = ""
-  if(!value){ dropdown.style.display="none"; return }
-  const filtered = allSeafarers.filter(s => (s.name?.toLowerCase().includes(value) || s.rank?.toLowerCase().includes(value)))
-  if(filtered.length===0){ dropdown.style.display="none"; return }
-  filtered.forEach(s=>{
-    const item = document.createElement("div")
-    item.style.padding="8px"; item.style.cursor="pointer"; item.style.borderBottom="1px solid #eee"
-    item.innerHTML=`<b>${s.name}</b> — ${s.rank}`
-    item.onclick=()=>{ document.getElementById("intSearch").value=s.name; document.getElementById("intSeafarer").value=s.id; dropdown.style.display="none"}
-    dropdown.appendChild(item)
-  })
-  dropdown.style.display="block"
-})
-document.addEventListener("click", e => { if(!e.target.closest("#intSearch")) document.getElementById("intDropdown").style.display="none" })
+  allSeafarers
+    .filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))
+    .forEach(s=>{
+      const activeService = seaService?.find(ss => ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
+      const historyList = seaService?.filter(ss=>ss.seafarer_id===s.id)
+        .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+        .map(ss=>{
+          const vessel = vessels?.find(v=>v.id===ss.vessel_id)
+          const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+          return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+            <b>${vessel?.name || "Unknown"}</b><br>${ss.embarkation_date} → ${signOffDate}</div>`
+        }).join("") || "-"
 
-// ---------------- Assign Vessel Dropdowns ----------------
-document.getElementById("assignSeafarerSearch").addEventListener("input", function(){
-  const val = this.value.toLowerCase()
-  const dropdown = document.getElementById("assignSeafarerDropdown")
-  dropdown.innerHTML = ""
-  if(!val){ dropdown.style.display="none"; return }
-  const filtered = allSeafarers.filter(s => s.name.toLowerCase().includes(val) || s.rank.toLowerCase().includes(val))
-  filtered.forEach(s=>{
-    const item = document.createElement("div")
-    item.style.padding="6px"; item.style.cursor="pointer"
-    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
-    item.onclick = ()=>{ document.getElementById("assignSeafarerSearch").value=s.name; document.getElementById("assignSeafarer").value=s.id; dropdown.style.display="none" }
-    dropdown.appendChild(item)
-  })
-  dropdown.style.display="block"
-})
-document.addEventListener("click", e => { if(!e.target.closest("#assignSeafarerSearch")) document.getElementById("assignSeafarerDropdown").style.display="none" })
+      const statusHTML = activeService ? `<div style="color:green;font-weight:bold;">
+        ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+        <br>since ${activeService.embarkation_date}<br><br>
+        <button onclick="signOff('${activeService.id}')">Sign Off</button></div>` : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
-document.getElementById("assignVesselSearch").addEventListener("input", async function(){
-  const val = this.value.toLowerCase()
-  const dropdown = document.getElementById("assignVesselDropdown")
-  dropdown.innerHTML = ""
-  if(!val){ dropdown.style.display="none"; return }
-  const vessels = await client.from("vessels").select("*").then(r=>r.data||[])
-  const filtered = vessels.filter(v => v.name.toLowerCase().includes(val))
-  filtered.forEach(v=>{
-    const item = document.createElement("div")
-    item.style.padding="6px"; item.style.cursor="pointer"
-    item.innerHTML = v.name
-    item.onclick = ()=>{ document.getElementById("assignVesselSearch").value=v.name; document.getElementById("assignVessel").value=v.id; dropdown.style.display="none" }
-    dropdown.appendChild(item)
-  })
-  dropdown.style.display="block"
-})
-document.addEventListener("click", e => { if(!e.target.closest("#assignVesselSearch")) document.getElementById("assignVesselDropdown").style.display="none" })
+      const intList = interviews?.filter(i=>i.seafarer_id===s.id)
+        .map(i=>{
+          let color="gray"
+          if(i.decision==="Approved") color="green"
+          if(i.decision==="Standby") color="orange"
+          if(i.decision==="Rejected") color="red"
+          return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
+            <b>${i.interview_date}</b>
+            <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+              ${i.decision}</span>
+            <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px; max-width:250px;">
+              ${i.comment || ""}
+            </div>
+          </div>`
+        }).join("") || "-"
+
+      const docList = documents?.filter(d=>d.seafarer_id===s.id)
+        .map(d=>`<div><a href="${d.file_url}" target="_blank">${d.doc_type}</a>
+        <button onclick="deleteDocument('${d.id}')">Delete</button></div>`).join("<br>") || "-"
+
+      table.innerHTML += `<tr>
+        <td>${s.name}</td>
+        <td><span id="rank_text_${s.id}">${s.rank}</span>
+          <button onclick="editRank('${s.id}','${s.rank}')">✏</button></td>
+        <td>${statusHTML}</td>
+        <td>${historyList}</td>
+        <td>${intList}</td>
+        <td>${docList}</td>
+      </tr>`
+    })
+
+  // Setup dropdowns
+  setupDropdown("crewSearchInput","","", allSeafarers, ["name","rank"])
+  setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
+  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", await client.from("vessels").select("*").then(r=>r.data||[]), ["name"])
+}
 
 // ---------------- Initial Load ----------------
 loadAll()
