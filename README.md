@@ -32,32 +32,20 @@ a { text-decoration:none; color:blue; }
 <div class="card">
 <h3>Add Interview</h3>
 
-<div style="position:relative;width:300px;">
-  <input 
-    type="text" 
-    id="intSearch"
-    placeholder="Type name or rank..."
-    style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;"
-    autocomplete="off"
-  >
-
+<div style="position:relative;">
+  <input type="text" id="intSearch" placeholder="Type name or rank..." autocomplete="off">
   <div id="intDropdown" style="
     position:absolute;
-    top:100%;
-    left:0;
-    right:0;
     background:white;
     border:1px solid #ccc;
-    border-top:none;
+    width:100%;
     max-height:200px;
     overflow-y:auto;
     display:none;
-    z-index:1000;
-  "></div>
+    z-index:1000;"></div>
 </div>
 
 <input type="hidden" id="intSeafarer">
-
 <input type="date" id="intDate">
 
 <select id="intResult">
@@ -67,20 +55,14 @@ a { text-decoration:none; color:blue; }
 <option value="Rejected">Rejected</option>
 </select>
 
-<textarea 
-  id="intComments"
-  rows="4"
-  placeholder="Interview comments..."
-  style="
-    width:300px;
-    padding:8px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    resize:vertical;
-  "
-></textarea>
-
+<textarea id="intComments" rows="4" placeholder="Interview comments..."></textarea>
 <button onclick="addInterview()">Add Interview</button>
+</div>
+
+<div class="card">
+<h3>Crew List</h3>
+<input type="text" id="searchInput" placeholder="Search by name or rank...">
+<button onclick="loadAll()">Refresh</button>
 </div>
 
 <div class="card">
@@ -147,17 +129,17 @@ const client = createClient(
 )
   
 let allSeafarers = []
-  
-async function addSeafarer(){
 
-  const name = document.getElementById("name").value
+async function addSeafarer(){
+  const name = nameInput = document.getElementById("name").value
   const rank = document.getElementById("rank").value
   const internal_id = document.getElementById("internal_id").value
 
-  if(!name || !rank){
-    alert("Fill all fields")
-    return
-  }
+  if(!name || !rank) return alert("Fill all fields")
+
+  await client.from("seafarers").insert([{ name, rank, internal_id }])
+  loadAll()
+}
 
   const { error } = await client
     .from("seafarers")
@@ -185,16 +167,22 @@ function editRank(id, currentRank){
   `
 }
   
-async function addInterview() {
-  const seafarer_id = intSeafarer.value
-  const interview_date = intDate.value
-  const decision = intResult.value
-  const comment = intComments.value
+async function addInterview(){
+  const seafarer_id = document.getElementById("intSeafarer").value
+  const interview_date = document.getElementById("intDate").value
+  const decision = document.getElementById("intResult").value
+  const comment = document.getElementById("intComments").value
 
+  if(!seafarer_id) return alert("Select seafarer")
   if(!interview_date) return alert("Select interview date")
 
   await client.from("interviews")
     .insert([{ seafarer_id, interview_date, decision, comment }])
+
+  document.getElementById("intComments").value = ""
+  document.getElementById("intDate").value = ""
+  document.getElementById("intSearch").value = ""
+  document.getElementById("intSeafarer").value = ""
 
   loadAll()
 }
@@ -316,17 +304,21 @@ async function signOff(serviceId){
   loadAll()
 }
 async function loadAll() {
+  
 
   const { data: seafarers } = await client.from("seafarers").select("*")
-  allSeafarers = seafarers || []
   const searchValue = document.getElementById("searchInput")?.value?.toLowerCase() || ""
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
 
-  const table = crewTable
+   allSeafarers = seafarers || []
+  
+  const table = document.getElementById("crewTable")
   table.innerHTML = ""
+
+  const searchValue = document.getElementById("searchInput").value.toLowerCase()
 
   ;["intSeafarer","docSeafarer","assignSeafarer"].forEach(id=>{
     const sel = document.getElementById(id)
@@ -346,7 +338,12 @@ async function loadAll() {
     assignVessel.innerHTML += `<option value="${v.id}">${v.name}</option>`
   })
 
-  seafarers?.forEach(s=>{
+   allSeafarers
+  .filter(s =>
+    s.name?.toLowerCase().includes(searchValue) ||
+    s.rank?.toLowerCase().includes(searchValue)
+  )
+  .forEach(s => {
 
     const activeService = seaService?.find(ss =>
       ss.seafarer_id === s.id &&
@@ -394,44 +391,34 @@ async function loadAll() {
       `
     }
 
-   const intList = interviews?.filter(i => i.seafarer_id === s.id)
-.sort((a,b)=> new Date(b.interview_date) - new Date(a.interview_date))
-.map(i=>{
+   const intList = (interviews || [])
+    .filter(i => i.seafarer_id === s.id)
+    .map(i => {
+      let color="gray"
+      if(i.decision==="Approved") color="green"
+      if(i.decision==="Standby") color="orange"
+      if(i.decision==="Rejected") color="red"
 
-  let color = "#555"
-  if(i.decision==="Approved") color="green"
-  if(i.decision==="Standby") color="orange"
-  if(i.decision==="Rejected") color="red"
+      return `
+      <div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
+        <b>${i.interview_date}</b>
+        <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+          ${i.decision}
+        </span>
+        <div style="white-space:pre-wrap;margin-top:6px;">
+          ${i.comment || ""}
+        </div>
+      </div>`
+    }).join("") || "-"
 
-  return `
-    <div style="
-      margin-bottom:8px;
-      padding:6px;
-      background:#f1f3f6;
-      border-radius:6px;
-      font-size:13px;
-    ">
-      <b>${i.interview_date}</b>
-      <span style="
-        background:${color};
-        color:white;
-        padding:3px 8px;
-        border-radius:6px;
-        margin-left:6px;
-        font-weight:bold;
-      ">
-        ${i.decision}
-      </span>
-    <div style="
-  margin-top:6px;
-  color:#333;
-  white-space:pre-wrap;
-  word-break:break-word;
-">
-  ${i.comment ? i.comment : ""}
-</div>
-  `
-}).join("") || "-"
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.rank}</td>
+        <td>${intList}</td>
+      </tr>`
+  })
+}
 
     const docList = documents?.filter(d => d.seafarer_id === s.id)
     .map(d => `
@@ -478,7 +465,11 @@ async function loadAll() {
   
 loadAll()
 
-document.getElementById("intSearch").addEventListener("input", function(){
+document.getElementById("searchInput")
+.addEventListener("input", loadAll)
+
+document.getElementById("intSearch")
+.addEventListener("input", function(){
 
   const value = this.value.toLowerCase()
   const dropdown = document.getElementById("intDropdown")
