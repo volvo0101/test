@@ -61,7 +61,7 @@ a { text-decoration:none; color:blue; }
 <option value="Certificate">Certificate</option>
 <option value="Appraisal">Appraisal</option>
 </select>
-<input type="file" id="fileInput" accept="application/pdf" multiple>
+<input type="file" id="fileInput" accept=".pdf,.zip" multiple>
 <button onclick="uploadDocument()">Upload</button>
 </div>
 
