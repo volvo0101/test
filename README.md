@@ -50,10 +50,13 @@ a { text-decoration:none; color:blue; }
 <button onclick="addInterview()">Add Interview</button>
 </div>
 
-<!-- Upload PDF -->
+<!-- Upload PDF с умным поиском моряков -->
 <div class="card">
 <h3>Upload PDF</h3>
-<select id="docSeafarer"></select>
+<input type="text" id="docSeafarerSearch" placeholder="Type name or rank..." autocomplete="off">
+<input type="hidden" id="docSeafarer">
+<div id="docSeafarerDropdown" class="dropdown"></div>
+
 <select id="docType">
 <option value="Certificate">Certificate</option>
 <option value="Appraisal">Appraisal</option>
@@ -163,7 +166,7 @@ async function addInterview(){
   loadAll()
 }
 
-// ---------------- Documents ----------------
+// ---------------- Upload PDF ----------------
 async function uploadDocument() {
   const seafarer_id = document.getElementById("docSeafarer").value
   const files = document.getElementById("fileInput").files
@@ -176,22 +179,44 @@ async function uploadDocument() {
     const { data } = client.storage.from("crew-documents").getPublicUrl(filePath)
     await client.from("documents").insert([{ seafarer_id, file_name: file.name, file_url: data.publicUrl, doc_type }])
   }
+
   loadAll()
 }
 
-async function deleteDocument(docId){
-  if(!confirm("Delete document?")) return
-  const { data: doc, error: fetchError } = await client.from("documents").select("*").eq("id", docId).single()
-  if(fetchError) return alert(fetchError.message)
+// ---------------- Dropdown умного поиска моряка ----------------
+document.getElementById("docSeafarerSearch").addEventListener("input", function(){
+  const value = this.value.toLowerCase()
+  const dropdown = document.getElementById("docSeafarerDropdown")
+  dropdown.innerHTML = ""
+  if(!value){ dropdown.style.display="none"; return }
 
-  const urlParts = doc.file_url.split("/crew-documents/")
-  const filePath = urlParts[1]
-  if(filePath){
-    await client.storage.from("crew-documents").remove([filePath])
-  }
-  await client.from("documents").delete().eq("id", docId)
-  loadAll()
-}
+  const filtered = allSeafarers.filter(s =>
+    (s.name?.toLowerCase().includes(value)) ||
+    (s.rank?.toLowerCase().includes(value))
+  )
+
+  filtered.forEach(s=>{
+    const item = document.createElement("div")
+    item.style.padding="6px"
+    item.style.cursor="pointer"
+    item.style.borderBottom = "1px solid #eee"
+    item.innerHTML = `<b>${s.name}</b> — ${s.rank}`
+    item.onclick = ()=>{
+      document.getElementById("docSeafarerSearch").value = s.name
+      document.getElementById("docSeafarer").value = s.id
+      dropdown.style.display = "none"
+    }
+    dropdown.appendChild(item)
+  })
+
+  dropdown.style.display = filtered.length ? "block" : "none"
+})
+
+// Закрытие dropdown при клике вне
+document.addEventListener("click", e => {
+  if(!e.target.closest("#docSeafarerSearch")) 
+    document.getElementById("docSeafarerDropdown").style.display="none"
+})
 
 // ---------------- Vessels ----------------
 async function addVessel() {
