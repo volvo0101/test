@@ -368,18 +368,18 @@ async function loadAll(){
     const positionExperience = calculateServiceDays(allPositions)
 
     const historyList = allPositions
-      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-      .map(ss=>{
-        const vessel = vessels?.find(v=>v.id===ss.vessel_id)
-        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
-        const posName = ss.position || "Unknown"
-        const exp = positionExperience[ss.position] ? formatExperience(positionExperience[ss.position]) : "-"
-        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-          <b>${ss.position}</b> (${exp})<br>
-          ${vessel?.name || "Unknown"}<br>
-          ${ss.embarkation_date} → ${signOffDate}
-        </div>`
-      }).join("") || "-"
+  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+  .map(ss=>{
+    const vessel = vessels?.find(v=>v.id===ss.vessel_id)
+    const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+    const posName = ss.position || "Unknown" // используем безопасное значение
+    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+    return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+      <b>${posName}</b> (${exp})<br>
+      ${vessel?.name || "Unknown"}<br>
+      ${ss.embarkation_date} → ${signOffDate}
+    </div>`
+  }).join("") || "-"
 
     const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
