@@ -93,12 +93,6 @@ a { text-decoration:none; color:blue; }
 <button onclick="assignToVessel()">Save</button>
 </div>
 
-<!-- Search Seafarers -->
-<div style="margin-bottom:10px; display:flex; gap:10px;">
-  <input type="text" id="crewSearchInput" placeholder="Search seafarer..." />
-  <button id="crewSearchBtn">Find</button>
-</div>
-
 <!-- Crew List -->
 <div class="card">
 <h3>Crew List</h3>
