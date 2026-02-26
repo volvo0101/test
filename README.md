@@ -179,32 +179,39 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
-  const experience = {}
+  const experience = {} // ключ = должность, значение = {days, months, years}
+
   allPositions.forEach(pos => {
-    const position = pos.position || "Unknown"
+    if (!pos.position || pos.position === "Unknown") return; // игнорируем пустые позиции
+
+    const position = pos.position
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
-    let totalDays = Math.floor((end - start) / (1000*60*60*24)) + 1
-    const years = Math.floor(totalDays/360)
-    totalDays -= years*360
-    const months = Math.floor(totalDays/30)
-    totalDays -= months*30
+    let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
+
+    const years = Math.floor(totalDays / 360)
+    totalDays -= years * 360
+    const months = Math.floor(totalDays / 30)
+    totalDays -= months * 30
     const days = totalDays
 
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
+
     experience[position].years += years
     experience[position].months += months
     experience[position].days += days
 
+    // корректируем переполнение
     if(experience[position].days >= 30){
-      experience[position].months += Math.floor(experience[position].days/30)
-      experience[position].days %= 30
+      experience[position].months += Math.floor(experience[position].days / 30)
+      experience[position].days = experience[position].days % 30
     }
     if(experience[position].months >= 12){
-      experience[position].years += Math.floor(experience[position].months/12)
-      experience[position].months %= 12
+      experience[position].years += Math.floor(experience[position].months / 12)
+      experience[position].months = experience[position].months % 12
     }
   })
+
   return experience
 }
 
@@ -397,7 +404,7 @@ const historyList = allPositions
 
     // Опыт берём по реальной позиции записи, если она есть
     const realPosition = ss.position && ss.position !== "Unknown" ? ss.position : null
-    const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "-"
+const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "0y 0m 0d"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
       <b>${posName}</b> (${exp})<br>
