@@ -58,6 +58,7 @@ a { text-decoration:none; color:blue; }
 </select>
 <button onclick="addSeafarer()">Add</button>
 </div>
+
 <!-- Add Interview -->
 <div class="card">
 <h3>Add Interview</h3>
