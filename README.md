@@ -392,11 +392,12 @@ const historyList = allPositions
     const vessel = vessels?.find(v => v.id === ss.vessel_id)
     const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
 
-    // Берём позицию из записи, если нет — подставляем currentRank
+    // Должность для отображения
     const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
 
-    // Стаж по точному названию должности
-    const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+    // Опыт берём по реальной позиции записи, если она есть
+    const realPosition = ss.position && ss.position !== "Unknown" ? ss.position : null
+    const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "-"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
       <b>${posName}</b> (${exp})<br>
