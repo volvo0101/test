@@ -110,7 +110,8 @@ a { text-decoration:none; color:blue; }
 
 <script>
 const { createClient } = supabase
-const client = createClient("чччч", "чччч")
+const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
+"sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
 let allSeafarers = []
 
 // ---------------- Seafarers ----------------
