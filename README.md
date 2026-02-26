@@ -405,8 +405,8 @@ const historyList = allPositions
     const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
 
     // Опыт берём по реальной позиции записи, если она есть
-    const realPosition = ss.position && ss.position !== "Unknown" ? ss.position : null
-const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "0y 0m 0d"
+  const realPosition = ss.position && ss.position !== "Unknown" ? ss.position : null
+const exp = realPosition && positionExperience[realPosition] ? formatExperience(positionExperience[realPosition]) : "-"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
       <b>${posName}</b> (${exp})<br>
