@@ -378,20 +378,24 @@ async function loadAll(){
     const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date==="")
     const positionExperience = calculateServiceDays(allPositions)
 
-    const currentRank = allPositions
-      .filter(ss => ss.position && ss.position !== "Unknown")
-      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))[0]?.position || "Unknown"
+    // 1. Текущий ранг морского работника
+const currentRank = allPositions
+  .filter(ss => ss.position && ss.position !== "Unknown")
+  .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position
+  || s.rank  // fallback на основной ранк из таблицы seafarers
+  || "Not Assigned"
 
-   const historyList = allPositions
+// 2. Формируем историю
+const historyList = allPositions
   .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
   .map(ss => {
     const vessel = vessels?.find(v => v.id === ss.vessel_id)
     const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
 
-    // Берём позицию из записи, если нет — подставляем текущий ранг
+    // Берём позицию из записи, если нет — подставляем currentRank
     const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
 
-    // Стаж берём по точному названию должности
+    // Стаж по точному названию должности
     const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
 
     return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
