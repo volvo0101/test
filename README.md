@@ -179,36 +179,39 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
-  const experience = {} // ключ = должность, значение = {days, months, years}
+  const experience = {}
 
   allPositions.forEach(pos => {
-    if (!pos.position || pos.position === "Unknown") return; // игнорируем пустые позиции
+    if(!pos.position || pos.position === "Unknown") return
 
     const position = pos.position
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
+    
+    // разница в миллисекундах
     let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1
-
-    const years = Math.floor(totalDays / 360)
-    totalDays -= years * 360
-    const months = Math.floor(totalDays / 30)
-    totalDays -= months * 30
-    const days = totalDays
 
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
 
-    experience[position].years += years
-    experience[position].months += months
-    experience[position].days += days
+    // добавляем в существующий опыт
+    experience[position].years += Math.floor(totalDays / 360)
+    totalDays = totalDays % 360
 
-    // корректируем переполнение
-    if(experience[position].days >= 30){
-      experience[position].months += Math.floor(experience[position].days / 30)
-      experience[position].days = experience[position].days % 30
+    experience[position].months += Math.floor(totalDays / 30)
+    totalDays = totalDays % 30
+
+    experience[position].days += totalDays
+  })
+
+  // корректируем переполнение дней и месяцев
+  Object.keys(experience).forEach(pos => {
+    if(experience[pos].days >= 30){
+      experience[pos].months += Math.floor(experience[pos].days / 30)
+      experience[pos].days = experience[pos].days % 30
     }
-    if(experience[position].months >= 12){
-      experience[position].years += Math.floor(experience[position].months / 12)
-      experience[position].months = experience[position].months % 12
+    if(experience[pos].months >= 12){
+      experience[pos].years += Math.floor(experience[pos].months / 12)
+      experience[pos].months = experience[pos].months % 12
     }
   })
 
