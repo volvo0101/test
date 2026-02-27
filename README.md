@@ -307,17 +307,24 @@ function toggleDropdown(id){
   dd.style.display = dd.style.display === "block" ? "none" : "block"
 }
 
-// закрытие dropdown при клике вне области
-document.addEventListener("click", e=>{
-  ["rankFilterDropdown","statusFilterDropdown"].forEach(id=>{
+// ---------------- Close dropdowns on click outside ----------------
+document.addEventListener("click", e => {
+  // фильтры (статус и позиции)
+  ["rankFilterDropdown", "statusFilterDropdown"].forEach(id => {
     const dd = document.getElementById(id)
-    if(dd && !e.target.closest(`#${id}`) && !e.target.closest("button")) dd.style.display="none"
+    if (dd && !e.target.closest(`#${id}`) && !e.target.closest("button")) {
+      dd.style.display = "none"
+    }
   })
-  // для поисковых dropdown
-  ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
-    const dd = document.getElementById(id)
-    const searchInputId = id.replace("Dropdown","Search")
-    if(dd && !e.target.closest(`#${searchInputId}`)) dd.style.display="none"
+
+  // поисковые dropdowns
+  ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown","commentSeafarerDropdown"].forEach(dropId => {
+    const dd = document.getElementById(dropId)
+    const inputId = dropId.replace("Dropdown","Search")
+    const input = document.getElementById(inputId)
+    if (dd && input && !e.target.closest(`#${inputId}`)) {
+      dd.style.display = "none"
+    }
   })
 })
 
@@ -599,7 +606,6 @@ async function signOff(serviceId){
   loadAll()
 }
 
-// ---------------- Load All ----------------
 // ---------------- Load All ----------------
 async function loadAll() {
 
