@@ -586,7 +586,6 @@ const tsiHTML = commentsByDept.TSI.length
 const opsHTML = commentsByDept.OPS.length 
   ? commentsByDept.OPS.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
   : "-"
-})
 
     table.innerHTML += `
       <tr>
