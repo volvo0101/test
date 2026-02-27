@@ -209,8 +209,16 @@ a { text-decoration:none; color:blue; }
             <label><input type="checkbox" class="filterPosition" value="Messman" checked onchange="loadAll()"> Messman</label>
             <label><input type="checkbox" class="filterPosition" value="Fitter" checked onchange="loadAll()"> Fitter</label>
             <label><input type="checkbox" class="filterPosition" value="Painter" checked onchange="loadAll()"> Painter</label>
-            <!-- добавь остальные должности по аналогии -->
-<th>Status</th>
+            </div>
+        </th>
+        <th>
+          Status
+          <button onclick="toggleDropdown('statusFilterDropdown')">▼</button>
+          <div id="statusFilterDropdown" class="dropdown" style="display:none;">
+            <label><input type="checkbox" id="filterOnboard" checked onchange="loadAll()"> Onboard</label>
+            <label><input type="checkbox" id="filterAshore" checked onchange="loadAll()"> Ashore</label>
+          </div>
+        </th>
 <th>Contract History</th>
 <th>Interviews</th>
 <th>QA</th>
@@ -537,10 +545,7 @@ async function loadAll() {
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  for (let s of allSeafarers.filter(s =>
-      s.name.toLowerCase().includes(searchValue) ||
-      s.rank.toLowerCase().includes(searchValue)
-  )) {
+  for (let s of filteredSeafarers) {
 
     const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
     const activeService = allPositions.find(ss =>
