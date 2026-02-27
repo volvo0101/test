@@ -74,6 +74,8 @@ a { text-decoration:none; color:blue; }
   <option value="Standby">Standby</option>
   <option value="Rejected">Rejected</option>
 </select>
+<label>Your Telegram</label>
+<input type="text" id="interviewBy" placeholder="@username">
 <textarea id="intComments" rows="4" placeholder="Interview comments..."></textarea>
 <button onclick="addInterview()">Add Interview</button>
 </div>
