@@ -600,15 +600,18 @@ async function signOff(serviceId){
 }
 
 // ---------------- Load All ----------------
+// ---------------- Load All ----------------
 async function loadAll() {
 
+  // ---------------- Получаем все данные ----------------
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
   const { data: vessels } = await client.from("vessels").select("*")
   const { data: seaService } = await client.from("sea_service").select("*")
 
-  allSeafarers = seafarers || []
+  const allSeafarers = seafarers || []
+  const allVessels = vessels || []
 
   const searchValue = document.getElementById("crewSearchInput")?.value?.toLowerCase() || ""
   const table = document.getElementById("crewTable")
@@ -621,7 +624,7 @@ async function loadAll() {
     .filter(cb => cb.checked)
     .map(cb => cb.value)
 
-  let filteredSeafarers = allSeafarers.filter(s=>{
+  const filteredSeafarers = allSeafarers.filter(s=>{
     const activeService = seaService?.some(ss => ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
     const statusOk = (activeService && showOnboard) || (!activeService && showAshore)
     const positionOk = checkedPositions.length === 0 || checkedPositions.includes(s.rank)
@@ -629,7 +632,7 @@ async function loadAll() {
     return statusOk && positionOk && searchOk
   })
 
-  // ---------------- Loop ----------------
+  // ---------------- Loop through filtered seafarers ----------------
   for (let s of filteredSeafarers) {
 
     const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
@@ -637,18 +640,14 @@ async function loadAll() {
       !ss.disembarkation_date || ss.disembarkation_date === ""
     )
 
-    // 🔥 Считаем стаж один раз
     const positionExperience = calculateServiceDays(allPositions)
-
-    const currentRank = activeService
-      ? activeService.position
-      : s.rank || "Unknown"
+    const currentRank = activeService ? activeService.position : s.rank || "Unknown"
 
     // ---------------- HISTORY ----------------
     const historyList = allPositions
       .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
       .map(ss => {
-        const vessel = vessels?.find(v => v.id === ss.vessel_id)
+        const vessel = allVessels.find(v => v.id === ss.vessel_id)
         const signOffDate = ss.disembarkation_date || "Present"
         const exp = positionExperience[ss.position]
         const formattedExp = exp ? formatExperience(exp) : "0y 0m 0d"
@@ -663,7 +662,7 @@ async function loadAll() {
     // ---------------- STATUS ----------------
     const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
-          ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
+          ON BOARD (${allVessels.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
           <br>since ${activeService.embarkation_date}<br><br>
           <button onclick="signOff('${activeService.id}')">Sign Off</button>
         </div>`
@@ -673,13 +672,9 @@ async function loadAll() {
     const intList = interviews?.filter(i=>i.seafarer_id===s.id)
       .map(i=>{
         let color="gray"
-        if(i.decision==="7") color="green"
-        if(i.decision==="6") color="green"
-        if(i.decision==="5") color="orange"
-        if(i.decision==="4") color="orange"
-        if(i.decision==="3") color="red"
-        if(i.decision==="2") color="red"
-        if(i.decision==="1") color="red"
+        if(["7","6"].includes(i.decision)) color="green"
+        if(["5","4"].includes(i.decision)) color="orange"
+        if(["3","2","1"].includes(i.decision)) color="red"
         if(i.decision==="BLACK LIST") color="black"
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
           <b>${i.interview_date}</b>
@@ -702,29 +697,6 @@ async function loadAll() {
         </div>
       `).join("<br>") || "-"
 
-    // ---------------- OFFICE COMMENTS ----------------
-    const { data: officeComments } = await client
-      .from("office_comments")
-      .select("*")
-      .eq("seafarer_id", s.id)
-
-    const commentsByDept = { QA: [], TSI: [], OPS: [] }
-    officeComments?.forEach(c => {
-      if(c.department && commentsByDept[c.department]){
-        commentsByDept[c.department].push(c)
-      }
-    })
-
-    const qaHTML = commentsByDept.QA.length 
-      ? commentsByDept.QA.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-      : "-"
-    const tsiHTML = commentsByDept.TSI.length 
-      ? commentsByDept.TSI.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-      : "-"
-    const opsHTML = commentsByDept.OPS.length 
-      ? commentsByDept.OPS.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-      : "-"
-
     table.innerHTML += `
       <tr>
         <td>${s.name}</td>
@@ -735,23 +707,25 @@ async function loadAll() {
         <td>${statusHTML}</td>
         <td>${historyList}</td>
         <td>${intList}</td>
-        <td>${qaHTML}</td>
-        <td>${tsiHTML}</td>
-        <td>${opsHTML}</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
         <td>${docList}</td>
       </tr>`
   }
 
-  // ---------------- Dropdowns ----------------
+  // ---------------- Setup Dropdowns ----------------
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
-  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", vessels || [], ["abbreviation"])
+  setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", allVessels, ["name"])
   setupDropdown("commentSeafarerSearch", "commentSeafarer", "commentSeafarerDropdown", allSeafarers, ["name","rank"])
 }
 
 // ---------------- Initial Load ----------------
-loadAll()
+document.addEventListener("DOMContentLoaded", () => {
+  loadAll()
+})
 </script>
 
 </body>
