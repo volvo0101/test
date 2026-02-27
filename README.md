@@ -597,9 +597,9 @@ const opsHTML = commentsByDept.OPS.length
         <td>${statusHTML}</td>
         <td>${historyList}</td>
         <td>${intList}</td>
-        <td>${lastComments.QA}</td>
-        <td>${lastComments.TSI}</td>
-        <td>${lastComments.OPS}</td>
+        <td>${qaHTML}</td>
+        <td>${tsiHTML}</td>
+        <td>${opsHTML}</td>
         <td>${docList}</td>
       </tr>`
   }
