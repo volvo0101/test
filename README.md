@@ -384,9 +384,6 @@ async function addOfficeComments(){
   loadAll()
 }
 
-  loadAll()
-}
-  
 // ---------------- Interviews ----------------
 async function addInterview(){
   const seafarer_id = document.getElementById("intSeafarer").value
