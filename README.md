@@ -148,6 +148,27 @@ a { text-decoration:none; color:blue; }
 <button onclick="assignToVessel()">Save</button>
 </div>
 
+<div class="card">
+  <h3>Add Office Comments</h3>
+
+  <div style="position:relative;">
+    <input type="text" id="commentSeafarerSearch" placeholder="Type name or rank..." autocomplete="off">
+    <input type="hidden" id="commentSeafarer">
+    <div id="commentSeafarerDropdown" class="dropdown"></div>
+  </div>
+
+  <label>QA Comment</label>
+  <textarea id="qaComment" rows="2" placeholder="Comment for QA..."></textarea>
+
+  <label>TSI Comment</label>
+  <textarea id="tsiComment" rows="2" placeholder="Comment for TSI..."></textarea>
+
+  <label>OPS Comment</label>
+  <textarea id="opsComment" rows="2" placeholder="Comment for OPS..."></textarea>
+
+  <button onclick="addOfficeComments()">Add Comments</button>
+</div>
+
 <!-- Crew List -->
 <div class="card">
 <h3>Crew List</h3>
@@ -328,6 +349,35 @@ async function updateRank(id){
   loadAll()
 }
 
+// ---------------- Office comments ----------------
+ async function addOfficeComments(){
+  const seafarer_id = document.getElementById("commentSeafarer").value
+  if(!seafarer_id) return alert("Select a seafarer")
+
+  const qa = document.getElementById("qaComment").value.trim()
+  const tsi = document.getElementById("tsiComment").value.trim()
+  const ops = document.getElementById("opsComment").value.trim()
+
+  const inserts = []
+
+  if(qa) inserts.push({ seafarer_id, department: "QA", comment: qa })
+  if(tsi) inserts.push({ seafarer_id, department: "TSI", comment: tsi })
+  if(ops) inserts.push({ seafarer_id, department: "OPS", comment: ops })
+
+  if(inserts.length === 0) return alert("Enter at least one comment")
+
+  await client.from("office_comments").insert(inserts)
+
+  // Очистка полей
+  document.getElementById("qaComment").value = ""
+  document.getElementById("tsiComment").value = ""
+  document.getElementById("opsComment").value = ""
+  document.getElementById("commentSeafarerSearch").value = ""
+  document.getElementById("commentSeafarer").value = ""
+
+  loadAll()
+}
+  
 // ---------------- Interviews ----------------
 async function addInterview(){
   const seafarer_id = document.getElementById("intSeafarer").value
@@ -532,6 +582,7 @@ async function loadAll() {
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", vessels || [], ["abbreviation"])
+  setupDropdown("commentSeafarerSearch", "commentSeafarer", "commentSeafarerDropdown", allSeafarers, ["name","rank"])
 }
 
 // ---------------- Initial Load ----------------
