@@ -355,8 +355,25 @@ async function assignToVessel(){
   const vessel_id = document.getElementById("assignVessel").value
   const embarkation_date = document.getElementById("embarkDate").value
   const disembarkation_date = document.getElementById("disembarkDate").value || null
-  if(!seafarer_id || !vessel_id || !embarkation_date) return alert("All fields required")
-  await client.from("sea_service").insert([{ seafarer_id, vessel_id, embarkation_date, disembarkation_date }])
+
+  if(!seafarer_id || !vessel_id || !embarkation_date)
+    return alert("All fields required")
+
+  // Получаем текущий ранг моряка
+  const { data: seafarer } = await client
+    .from("seafarers")
+    .select("rank")
+    .eq("id", seafarer_id)
+    .single()
+
+  await client.from("sea_service").insert([{
+    seafarer_id,
+    vessel_id,
+    position: seafarer.rank, // <-- ВАЖНО
+    embarkation_date,
+    disembarkation_date
+  }])
+
   loadAll()
 }
 
@@ -389,7 +406,39 @@ async function loadAll() {
     const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
 
     // подсчёт стажа
-    positionExperience = calculateServiceDays(allPositions)
+    function calculateServiceDays(allPositions) {
+
+  const experience = {}
+
+  allPositions.forEach(pos => {
+
+    if(!pos.position) return
+
+    const start = new Date(pos.embarkation_date)
+    const end = pos.disembarkation_date
+      ? new Date(pos.disembarkation_date)
+      : new Date()
+
+    let totalDays = Math.floor((end - start) / (1000*60*60*24))
+
+    if(!experience[pos.position])
+      experience[pos.position] = 0
+
+    experience[pos.position] += totalDays
+  })
+
+  return experience
+}
+    function formatExperience(totalDays){
+
+  const years = Math.floor(totalDays / 365)
+  totalDays %= 365
+
+  const months = Math.floor(totalDays / 30)
+  totalDays %= 30
+
+  return `${years}y ${months}m ${totalDays}d`
+}
 
     // текущий ранг для подстановки
     currentRank = allPositions
@@ -397,22 +446,23 @@ async function loadAll() {
       .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
 
     // формируем историю контрактов
-    const historyList = allPositions
-      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))
-      .map(ss => {
-        const vessel = vessels?.find(v => v.id === ss.vessel_id)
-        const signOffDate = ss.disembarkation_date ? ss.disembarkation_date : "Present"
+   const historyList = allPositions
+  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+  .map(ss => {
 
-        const posName = ss.position && ss.position !== "Unknown" ? ss.position : currentRank
-        const exp = positionExperience[posName] ? formatExperience(positionExperience[posName]) : "-"
+    const vessel = vessels?.find(v => v.id === ss.vessel_id)
+    const signOffDate = ss.disembarkation_date || "Present"
 
-        return `<div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-          <b>${posName}</b> (${exp})<br>
-          ${vessel?.name || "Unknown"}<br>
-          ${ss.embarkation_date} → ${signOffDate}
-        </div>`
-      }).join("") || "-"
+    const expDays = positionExperience[ss.position] || 0
+    const formattedExp = formatExperience(expDays)
 
+    return `
+    <div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+      <b>${ss.position}</b> (${formattedExp})<br>
+      ${vessel?.name || "Unknown"}<br>
+      ${ss.embarkation_date} → ${signOffDate}
+    </div>`
+  }).join("") || "-"
     // статус ON BOARD / ASHORE
     const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
