@@ -237,6 +237,27 @@ const client = createClient("https://kjtigzaevodgpdtndyqs.supabase.co",
 "sb_publishable_qZEENkcQYkmw4oxJP3Lekw_pRerDtsE")
 let allSeafarers = []
 
+// ---------------- Dropdown ----------------
+function toggleDropdown(id){
+  const dd = document.getElementById(id)
+  if(!dd) return
+  dd.style.display = dd.style.display === "block" ? "none" : "block"
+}
+
+// закрытие dropdown при клике вне области
+document.addEventListener("click", e=>{
+  ["rankFilterDropdown","statusFilterDropdown"].forEach(id=>{
+    const dd = document.getElementById(id)
+    if(dd && !e.target.closest(`#${id}`) && !e.target.closest("button")) dd.style.display="none"
+  })
+  // для поисковых dropdown
+  ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
+    const dd = document.getElementById(id)
+    const searchInputId = id.replace("Dropdown","Search")
+    if(dd && !e.target.closest(`#${searchInputId}`)) dd.style.display="none"
+  })
+})
+
 // ---------------- Helpers ----------------
 function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
   const input = document.getElementById(inputId)
@@ -269,31 +290,14 @@ function setupDropdown(inputId, hiddenId, dropdownId, data, fields){
 
 // Подсчет стажа по должностям
 function calculateServiceDays(allPositions) {
-  const experience = {} // ключ = должность
-
+  const experience = {}
   allPositions.forEach(pos => {
     const position = pos.position
-    if(!position || position === "Unknown") return // пропускаем пустые
-
+    if(!position || position === "Unknown") return
     const start = new Date(pos.embarkation_date)
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
     let totalDays = Math.floor((end - start) / (1000*60*60*24)) + 1
 
-    // инициализация перед суммированием
-    function toggleDropdown(id){
-  const dd = document.getElementById(id)
-  dd.style.display = dd.style.display === "block" ? "none" : "block"
-}
-
-// закрываем dropdown при клике вне области
-document.addEventListener("click", e=>{
-  ["rankFilterDropdown","statusFilterDropdown"].forEach(id=>{
-    const dd = document.getElementById(id)
-    if(dd && !e.target.closest(`#${id}`) && !e.target.closest("button")) dd.style.display="none"
-  })
-})
-    
-    // инициализация перед суммированием
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
 
     experience[position].years += Math.floor(totalDays / 360)
@@ -305,7 +309,6 @@ document.addEventListener("click", e=>{
     experience[position].days += totalDays
   })
 
-  // корректируем переполнение
   Object.keys(experience).forEach(pos => {
     if(experience[pos].days >= 30){
       experience[pos].months += Math.floor(experience[pos].days / 30)
@@ -323,13 +326,16 @@ document.addEventListener("click", e=>{
 function formatExperience(exp){
   return `${exp.years}y ${exp.months}m ${exp.days}d`
 }
-document.addEventListener("click", e=>{
-  ["docSeafarerDropdown","intDropdown","assignSeafarerDropdown","assignVesselDropdown"].forEach(id=>{
-    const dd = document.getElementById(id)
-    if(dd && !e.target.closest(`#${id.replace("Dropdown","Search")}`)) dd.style.display="none"
-  })
-})
 
+// Генерация ID
+function generateInternalID() {
+  const now = new Date()
+  const datePart = now.getFullYear().toString().slice(-2)
+                + String(now.getMonth()+1).padStart(2,'0')
+                + String(now.getDate()).padStart(2,'0')
+  const randomPart = Math.floor(1000 + Math.random() * 9000)
+  return `ID${datePart}${randomPart}`
+}
 // ---------------- Seafarers ----------------
 function generateInternalID() {
   const now = new Date()
@@ -545,6 +551,22 @@ async function loadAll() {
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
+  // ---------------- Filter ----------------
+  const showOnboard = document.getElementById("filterOnboard")?.checked
+  const showAshore = document.getElementById("filterAshore")?.checked
+  const checkedPositions = Array.from(document.querySelectorAll(".filterPosition"))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value)
+
+  let filteredSeafarers = allSeafarers.filter(s=>{
+    const activeService = seaService?.some(ss => ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
+    const statusOk = (activeService && showOnboard) || (!activeService && showAshore)
+    const positionOk = checkedPositions.length === 0 || checkedPositions.includes(s.rank)
+    const searchOk = s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue)
+    return statusOk && positionOk && searchOk
+  })
+
+  // ---------------- Loop ----------------
   for (let s of filteredSeafarers) {
 
     const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
@@ -552,10 +574,9 @@ async function loadAll() {
       !ss.disembarkation_date || ss.disembarkation_date === ""
     )
 
-    // 🔥 ВАЖНО — считаем стаж один раз
+    // 🔥 Считаем стаж один раз
     const positionExperience = calculateServiceDays(allPositions)
 
-    // текущий ранг
     const currentRank = activeService
       ? activeService.position
       : s.rank || "Unknown"
@@ -564,13 +585,10 @@ async function loadAll() {
     const historyList = allPositions
       .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
       .map(ss => {
-
         const vessel = vessels?.find(v => v.id === ss.vessel_id)
         const signOffDate = ss.disembarkation_date || "Present"
-
         const exp = positionExperience[ss.position]
         const formattedExp = exp ? formatExperience(exp) : "0y 0m 0d"
-
         return `
         <div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
           <b>${ss.position}</b> (${formattedExp})<br>
@@ -595,17 +613,16 @@ async function loadAll() {
         if(i.decision==="Approved") color="green"
         if(i.decision==="Standby") color="orange"
         if(i.decision==="Rejected") color="red"
-
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-  <b>${i.interview_date}</b>
-  <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-    ${i.decision}
-  </span>
-  <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
-    ${i.comment || ""}
-    <br><b>By: ${i.created_by || "Unknown"}</b>
-  </div>
-</div>`
+          <b>${i.interview_date}</b>
+          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+            ${i.decision}
+          </span>
+          <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+            ${i.comment || ""}
+            <br><b>By: ${i.created_by || "Unknown"}</b>
+          </div>
+        </div>`
       }).join("") || "-"
 
     // ---------------- DOCUMENTS ----------------
@@ -617,45 +634,28 @@ async function loadAll() {
         </div>
       `).join("<br>") || "-"
 
-    // ---------------- Filter ----------------
-    const showOnboard = document.getElementById("filterOnboard")?.checked
-const showAshore = document.getElementById("filterAshore")?.checked
-const checkedPositions = Array.from(document.querySelectorAll(".filterPosition"))
-  .filter(cb => cb.checked)
-  .map(cb => cb.value)
-
-    let filteredSeafarers = allSeafarers.filter(s=>{
-  const activeService = seaService?.some(ss=>ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
-  const statusOk = (activeService && showOnboard) || (!activeService && showAshore)
-  const positionOk = checkedPositions.includes(s.rank)
-  const searchOk = s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue)
-  return statusOk && positionOk && searchOk
-})
     // ---------------- OFFICE COMMENTS ----------------
-    // Получаем все комментарии офиса для текущего моряка
-const { data: officeComments } = await client
-  .from("office_comments")
-  .select("*")
-  .eq("seafarer_id", s.id)
+    const { data: officeComments } = await client
+      .from("office_comments")
+      .select("*")
+      .eq("seafarer_id", s.id)
 
-// Группируем по отделам
-const commentsByDept = { QA: [], TSI: [], OPS: [] }
-officeComments?.forEach(c => {
-  if(c.department && commentsByDept[c.department]){
-    commentsByDept[c.department].push(c)
-  }
-})
+    const commentsByDept = { QA: [], TSI: [], OPS: [] }
+    officeComments?.forEach(c => {
+      if(c.department && commentsByDept[c.department]){
+        commentsByDept[c.department].push(c)
+      }
+    })
 
-// Превращаем массивы в HTML с By и датой
-const qaHTML = commentsByDept.QA.length 
-  ? commentsByDept.QA.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-  : "-"
-const tsiHTML = commentsByDept.TSI.length 
-  ? commentsByDept.TSI.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-  : "-"
-const opsHTML = commentsByDept.OPS.length 
-  ? commentsByDept.OPS.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
-  : "-"
+    const qaHTML = commentsByDept.QA.length 
+      ? commentsByDept.QA.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+      : "-"
+    const tsiHTML = commentsByDept.TSI.length 
+      ? commentsByDept.TSI.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+      : "-"
+    const opsHTML = commentsByDept.OPS.length 
+      ? commentsByDept.OPS.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+      : "-"
 
     table.innerHTML += `
       <tr>
@@ -674,6 +674,7 @@ const opsHTML = commentsByDept.OPS.length
       </tr>`
   }
 
+  // ---------------- Dropdowns ----------------
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
