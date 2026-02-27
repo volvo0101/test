@@ -126,9 +126,14 @@ a {
 <input type="date" id="intDate">
 <select id="intResult">
   <option value="">Select decision</option>
-  <option value="Approved">Approved</option>
-  <option value="Standby">Standby</option>
-  <option value="Rejected">Rejected</option>
+  <option value="7">7</option>
+  <option value="6">6</option>
+  <option value="5">5</option>
+  <option value="4">4</option>
+  <option value="3">3</option>
+  <option value="2">2</option>
+  <option value="1">1</option>
+  <option value="BLACK LIST">BLACK LIST</option>
 </select>
 <label>Your Telegram</label>
 <input type="text" id="interviewBy" placeholder="@username">
@@ -148,6 +153,7 @@ a {
 <option value="Appraisal">Appraisal</option>
 <option value="Training Book">Training Book</option>
 <option value="Promotion">Promotion</option>
+<option value="Warning">Warning</option>
 </select>
 <input type="file" id="fileInput" accept=".pdf,.zip" multiple>
 <button onclick="uploadDocument()">Upload</button>
@@ -667,9 +673,14 @@ async function loadAll() {
     const intList = interviews?.filter(i=>i.seafarer_id===s.id)
       .map(i=>{
         let color="gray"
-        if(i.decision==="Approved") color="green"
-        if(i.decision==="Standby") color="orange"
-        if(i.decision==="Rejected") color="red"
+        if(i.decision==="7") color="green"
+        if(i.decision==="6") color="green"
+        if(i.decision==="5") color="orange"
+        if(i.decision==="4") color="orange"
+        if(i.decision==="3") color="red"
+        if(i.decision==="2") color="red"
+        if(i.decision==="1") color="red"
+        if(i.decision==="BLACK LIST") color="black"
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
           <b>${i.interview_date}</b>
           <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
