@@ -157,6 +157,9 @@ a { text-decoration:none; color:blue; }
     <div id="commentSeafarerDropdown" class="dropdown"></div>
   </div>
 
+  <label>Your Telegram</label>
+  <input type="text" id="commentBy" placeholder="@username">
+
   <label>QA Comment</label>
   <textarea id="qaComment" rows="2" placeholder="Comment for QA..."></textarea>
 
@@ -349,9 +352,9 @@ async function updateRank(id){
   loadAll()
 }
 
-// ---------------- Office comments ----------------
- async function addOfficeComments(){
+async function addOfficeComments(){
   const seafarer_id = document.getElementById("commentSeafarer").value
+  const created_by = document.getElementById("commentBy").value.trim() || "Unknown"
   if(!seafarer_id) return alert("Select a seafarer")
 
   const qa = document.getElementById("qaComment").value.trim()
@@ -360,9 +363,9 @@ async function updateRank(id){
 
   const inserts = []
 
-  if(qa) inserts.push({ seafarer_id, department: "QA", comment: qa })
-  if(tsi) inserts.push({ seafarer_id, department: "TSI", comment: tsi })
-  if(ops) inserts.push({ seafarer_id, department: "OPS", comment: ops })
+  if(qa) inserts.push({ seafarer_id, department: "QA", comment: qa, created_by })
+  if(tsi) inserts.push({ seafarer_id, department: "TSI", comment: tsi, created_by })
+  if(ops) inserts.push({ seafarer_id, department: "OPS", comment: ops, created_by })
 
   if(inserts.length === 0) return alert("Enter at least one comment")
 
@@ -374,6 +377,10 @@ async function updateRank(id){
   document.getElementById("opsComment").value = ""
   document.getElementById("commentSeafarerSearch").value = ""
   document.getElementById("commentSeafarer").value = ""
+  document.getElementById("commentBy").value = ""
+
+  loadAll()
+}
 
   loadAll()
 }
@@ -535,14 +542,15 @@ async function loadAll() {
         if(i.decision==="Rejected") color="red"
 
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
-          <b>${i.interview_date}</b>
-          <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
-            ${i.decision}
-          </span>
-          <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
-            ${i.comment || ""}
-          </div>
-        </div>`
+  <b>${i.interview_date}</b>
+  <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
+    ${i.decision}
+  </span>
+  <div style="white-space:pre-wrap; word-break:break-word; margin-top:6px;">
+    ${i.comment || ""}
+    <br><b>By: ${i.created_by || "Unknown"}</b>
+  </div>
+</div>`
       }).join("") || "-"
 
     // ---------------- DOCUMENTS ----------------
@@ -555,10 +563,30 @@ async function loadAll() {
       `).join("<br>") || "-"
 
     // ---------------- OFFICE COMMENTS ----------------
-    const officeComments = await client.from("office_comments").select("*").eq("seafarer_id", s.id)
-    const lastComments = { QA: '', TSI: '', OPS: '' }
-      officeComments.data?.forEach(c => {
-    if(!lastComments[c.department]) lastComments[c.department] = c.comment
+    // Получаем все комментарии офиса для текущего моряка
+const { data: officeComments } = await client
+  .from("office_comments")
+  .select("*")
+  .eq("seafarer_id", s.id)
+
+// Группируем по отделам
+const commentsByDept = { QA: [], TSI: [], OPS: [] }
+officeComments?.forEach(c => {
+  if(c.department && commentsByDept[c.department]){
+    commentsByDept[c.department].push(c)
+  }
+})
+
+// Превращаем массивы в HTML с By и датой
+const qaHTML = commentsByDept.QA.length 
+  ? commentsByDept.QA.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+  : "-"
+const tsiHTML = commentsByDept.TSI.length 
+  ? commentsByDept.TSI.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+  : "-"
+const opsHTML = commentsByDept.OPS.length 
+  ? commentsByDept.OPS.map(c => `${c.comment}<br><b>By: ${c.created_by}</b> (${c.created_at.split('T')[0]})`).join("<br><hr>") 
+  : "-"
 })
 
     table.innerHTML += `
