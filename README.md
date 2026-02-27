@@ -1,20 +1,77 @@
-<!DOCTYPE html>
-<html>
 <head>
 <meta charset="UTF-8">
 <title>Crew Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <style>
-body { font-family: Arial; margin:40px; background:#f4f6f8; }
-.card { background:white; padding:20px; margin-bottom:20px; border-radius:8px; }
-button { padding:8px 14px; cursor:pointer; margin-top:5px; }
-input, select, textarea { padding:6px; margin:5px 0; width:100%; }
-table { width:100%; border-collapse: collapse; margin-top:10px; }
-th, td { border:1px solid #ddd; padding:8px; vertical-align: top; }
-th { background:#eee; }
-a { text-decoration:none; color:blue; }
-.dropdown { position:absolute; background:white; border:1px solid #ccc; max-height:200px; overflow-y:auto; display:none; z-index:1000; width:100%; }
+/* Общие стили */
+body { 
+  font-family: Arial, sans-serif; 
+  margin: 40px; 
+  background: #f4f6f8; 
+}
+.card { 
+  background: white; 
+  padding: 20px; 
+  margin-bottom: 20px; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+button { 
+  padding: 6px 12px; 
+  cursor: pointer; 
+  margin-top: 5px; 
+  border: 1px solid #ccc; 
+  background: #fff;
+  border-radius: 4px;
+}
+input, select, textarea { 
+  padding: 6px; 
+  margin: 5px 0; 
+  width: 100%; 
+  box-sizing: border-box;
+}
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  margin-top: 10px; 
+  table-layout: fixed;
+}
+th, td { 
+  border: 1px solid #ddd; 
+  padding: 8px; 
+  vertical-align: top; 
+  word-wrap: break-word;
+}
+th { 
+  background: #eee; 
+}
+a { 
+  text-decoration: none; 
+  color: blue; 
+}
+
+/* Dropdown */
+.dropdown { 
+  position: absolute; 
+  background: white; 
+  border: 1px solid #ccc; 
+  max-height: 200px;        /* ограничение по высоте */
+  overflow-y: auto;          /* скролл, если много элементов */
+  width: 200px;              /* фиксированная ширина */
+  z-index: 1000; 
+  padding: 4px 0; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
+  border-radius: 4px;
+  display: none;
+}
+.dropdown div { 
+  padding: 6px 12px; 
+  cursor: pointer; 
+}
+.dropdown div:hover { 
+  background: #f0f0f0; 
+}
 </style>
 </head>
 
