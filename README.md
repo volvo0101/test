@@ -108,6 +108,33 @@ a { text-decoration:none; color:blue; }
 <h3>Assign to Vessel</h3>
 <input type="text" id="assignSeafarerSearch" placeholder="Type name or rank...">
 <input type="hidden" id="assignSeafarer">
+<select id="assignPosition">
+ <option value="">Select position</option>
+  <option value="Master">Master</option>
+  <option value="C/O">C/O</option>
+  <option value="2/O">2/O</option>
+  <option value="3/O">3/O</option>
+  <option value="J/O">J/O</option>
+  <option value="D/C">D/C</option>
+  <option value="C/E">C/E</option>
+  <option value="2/E">2/E</option>
+  <option value="3/E">3/E</option>
+  <option value="4/E">4/E</option>
+  <option value="J/E">J/E</option>
+  <option value="E/C">E/C</option>
+  <option value="ETO">ETO</option>
+  <option value="ETO assistance">ETO assistance</option>
+  <option value="Pumpman">Pumpman</option>
+  <option value="Bosun">Bosun</option>
+  <option value="AB">AB</option>
+  <option value="OS">OS</option>
+  <option value="Oiler">Oiler</option>
+  <option value="Wiper">Wiper</option>
+  <option value="C/Cook">C/Cook</option>
+  <option value="Messman">Messman</option>
+  <option value="Fitter">Fitter</option>
+  <option value="Painter">Painter</option>
+</select>
 <div id="assignSeafarerDropdown" class="dropdown"></div>
 
 <input type="text" id="assignVesselSearch" placeholder="Type vessel name...">
@@ -352,6 +379,7 @@ async function addVessel(){
 
 async function assignToVessel(){
   const seafarer_id = document.getElementById("assignSeafarer").value
+  const position = document.getElementById("assignPosition").value
   const vessel_id = document.getElementById("assignVessel").value
   const embarkation_date = document.getElementById("embarkDate").value
   const disembarkation_date = document.getElementById("disembarkDate").value || null
@@ -367,12 +395,12 @@ async function assignToVessel(){
     .single()
 
   await client.from("sea_service").insert([{
-    seafarer_id,
-    vessel_id,
-    position: seafarer.rank, // <-- ВАЖНО
-    embarkation_date,
-    disembarkation_date
-  }])
+  seafarer_id,
+  vessel_id,
+  position,
+  embarkation_date,
+  disembarkation_date
+}])
 
   loadAll()
 }
