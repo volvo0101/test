@@ -161,6 +161,9 @@ a { text-decoration:none; color:blue; }
 <th>Status</th>
 <th>Contract History</th>
 <th>Interviews</th>
+<th>QA</th>
+<th>TSI</th>
+<th>OPS</th>
 <th>Documents</th>
 </tr>
 </thead>
@@ -501,6 +504,13 @@ async function loadAll() {
         </div>
       `).join("<br>") || "-"
 
+    // ---------------- OFFICE COMMENTS ----------------
+    const officeComments = await client.from("office_comments").select("*").eq("seafarer_id", s.id)
+    const lastComments = { QA: '', TSI: '', OPS: '' }
+      officeComments.data?.forEach(c => {
+    if(!lastComments[c.department]) lastComments[c.department] = c.comment
+})
+
     table.innerHTML += `
       <tr>
         <td>${s.name}</td>
@@ -511,6 +521,9 @@ async function loadAll() {
         <td>${statusHTML}</td>
         <td>${historyList}</td>
         <td>${intList}</td>
+        <td>${lastComments.QA}</td>
+        <td>${lastComments.TSI}</td>
+        <td>${lastComments.OPS}</td>
         <td>${docList}</td>
       </tr>`
   }
