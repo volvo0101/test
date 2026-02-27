@@ -386,6 +386,7 @@ async function signOff(serviceId){
 
 // ---------------- Load All ----------------
 async function loadAll() {
+
   const { data: seafarers } = await client.from("seafarers").select("*")
   const { data: interviews } = await client.from("interviews").select("*")
   const { data: documents } = await client.from("documents").select("*")
@@ -398,72 +399,44 @@ async function loadAll() {
   const table = document.getElementById("crewTable")
   table.innerHTML = ""
 
-  let positionExperience, currentRank // объявляем один раз перед циклом
-
-  for (let s of allSeafarers.filter(s => s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue))) {
+  for (let s of allSeafarers.filter(s =>
+      s.name.toLowerCase().includes(searchValue) ||
+      s.rank.toLowerCase().includes(searchValue)
+  )) {
 
     const allPositions = seaService?.filter(ss => ss.seafarer_id === s.id) || []
-    const activeService = allPositions.find(ss => !ss.disembarkation_date || ss.disembarkation_date === "")
+    const activeService = allPositions.find(ss =>
+      !ss.disembarkation_date || ss.disembarkation_date === ""
+    )
 
-    // подсчёт стажа
-    function calculateServiceDays(allPositions) {
+    // 🔥 ВАЖНО — считаем стаж один раз
+    const positionExperience = calculateServiceDays(allPositions)
 
-  const experience = {}
+    // текущий ранг
+    const currentRank = activeService
+      ? activeService.position
+      : s.rank || "Unknown"
 
-  allPositions.forEach(pos => {
+    // ---------------- HISTORY ----------------
+    const historyList = allPositions
+      .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
+      .map(ss => {
 
-    if(!pos.position) return
+        const vessel = vessels?.find(v => v.id === ss.vessel_id)
+        const signOffDate = ss.disembarkation_date || "Present"
 
-    const start = new Date(pos.embarkation_date)
-    const end = pos.disembarkation_date
-      ? new Date(pos.disembarkation_date)
-      : new Date()
+        const exp = positionExperience[ss.position]
+        const formattedExp = exp ? formatExperience(exp) : "0y 0m 0d"
 
-    let totalDays = Math.floor((end - start) / (1000*60*60*24))
+        return `
+        <div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
+          <b>${ss.position}</b> (${formattedExp})<br>
+          ${vessel?.name || "Unknown"}<br>
+          ${ss.embarkation_date} → ${signOffDate}
+        </div>`
+      }).join("") || "-"
 
-    if(!experience[pos.position])
-      experience[pos.position] = 0
-
-    experience[pos.position] += totalDays
-  })
-
-  return experience
-}
-    function formatExperience(totalDays){
-
-  const years = Math.floor(totalDays / 365)
-  totalDays %= 365
-
-  const months = Math.floor(totalDays / 30)
-  totalDays %= 30
-
-  return `${years}y ${months}m ${totalDays}d`
-}
-
-    // текущий ранг для подстановки
-    currentRank = allPositions
-      .filter(ss => ss.position && ss.position !== "Unknown")
-      .sort((a,b) => new Date(b.embarkation_date) - new Date(a.embarkation_date))[0]?.position || "Unknown"
-
-    // формируем историю контрактов
-   const historyList = allPositions
-  .sort((a,b)=>new Date(b.embarkation_date)-new Date(a.embarkation_date))
-  .map(ss => {
-
-    const vessel = vessels?.find(v => v.id === ss.vessel_id)
-    const signOffDate = ss.disembarkation_date || "Present"
-
-    const expDays = positionExperience[ss.position] || 0
-    const formattedExp = formatExperience(expDays)
-
-    return `
-    <div style="font-size:12px;background:#f1f3f6;padding:6px;margin-bottom:4px;border-radius:6px;">
-      <b>${ss.position}</b> (${formattedExp})<br>
-      ${vessel?.name || "Unknown"}<br>
-      ${ss.embarkation_date} → ${signOffDate}
-    </div>`
-  }).join("") || "-"
-    // статус ON BOARD / ASHORE
+    // ---------------- STATUS ----------------
     const statusHTML = activeService 
       ? `<div style="color:green;font-weight:bold;">
           ON BOARD (${vessels?.find(v=>v.id===activeService.vessel_id)?.name || "Unknown"})
@@ -472,13 +445,14 @@ async function loadAll() {
         </div>`
       : `<span style="color:gray;font-weight:bold;">ASHORE</span>`
 
-    // интервью
+    // ---------------- INTERVIEWS ----------------
     const intList = interviews?.filter(i=>i.seafarer_id===s.id)
       .map(i=>{
         let color="gray"
         if(i.decision==="Approved") color="green"
         if(i.decision==="Standby") color="orange"
         if(i.decision==="Rejected") color="red"
+
         return `<div style="margin-bottom:8px;background:#f1f3f6;padding:6px;border-radius:6px;">
           <b>${i.interview_date}</b>
           <span style="background:${color};color:white;padding:3px 8px;border-radius:6px;margin-left:6px;">
@@ -490,7 +464,7 @@ async function loadAll() {
         </div>`
       }).join("") || "-"
 
-    // документы
+    // ---------------- DOCUMENTS ----------------
     const docList = documents?.filter(d=>d.seafarer_id===s.id)
       .map(d=>`
         <div>
@@ -503,8 +477,8 @@ async function loadAll() {
       <tr>
         <td>${s.name}</td>
         <td>
-          <span id="rank_text_${s.id}">${activeService ? activeService.position : s.rank}</span>
-          <button onclick="editRank('${s.id}','${activeService ? activeService.position : s.rank}')">✏</button>
+          <span id="rank_text_${s.id}">${currentRank}</span>
+          <button onclick="editRank('${s.id}','${currentRank}')">✏</button>
         </td>
         <td>${statusHTML}</td>
         <td>${historyList}</td>
@@ -513,14 +487,11 @@ async function loadAll() {
       </tr>`
   }
 
-  // Вызовы setupDropdown остаются после цикла
   setupDropdown("docSeafarerSearch","docSeafarer","docSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("intSearch","intSeafarer","intDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignSeafarerSearch","assignSeafarer","assignSeafarerDropdown", allSeafarers, ["name","rank"])
   setupDropdown("assignVesselSearch","assignVessel","assignVesselDropdown", vessels || [], ["abbreviation"])
 }
-
-document.getElementById("crewSearchInput").addEventListener("input", loadAll)
 
 // ---------------- Initial Load ----------------
 loadAll()
