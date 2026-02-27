@@ -25,7 +25,6 @@ a { text-decoration:none; color:blue; }
 <!-- Add Seafarer -->
 <div class="card">
 <h3>Add Seafarer</h3>
-<input id="internal_id" placeholder="Internal ID">
 <input id="name" placeholder="Full Name">
 
 <label>Position / Rank</label>
@@ -283,16 +282,27 @@ document.addEventListener("click", e=>{
 })
 
 // ---------------- Seafarers ----------------
+function generateInternalID() {
+  const now = new Date()
+  const datePart = now.getFullYear().toString().slice(-2)  // последние 2 цифры года
+                + String(now.getMonth()+1).padStart(2,'0') // месяц
+                + String(now.getDate()).padStart(2,'0')   // день
+  const randomPart = Math.floor(1000 + Math.random() * 9000) // случайное 4-значное число
+  return `ID${datePart}${randomPart}` // пример: ID26021234
+}
+  
 async function addSeafarer(){
   const name = document.getElementById("name").value
   const rank = document.getElementById("rank").value
-  const internal_id = document.getElementById("internal_id").value
   if(!name || !rank) return alert("Fill all fields")
+
+  const internal_id = generateInternalID() // генерируем автоматически
+
   const { error } = await client.from("seafarers").insert([{ name, rank, internal_id }])
   if(error) return alert(error.message)
+
   document.getElementById("name").value = ""
   document.getElementById("rank").value = ""
-  document.getElementById("internal_id").value = ""
   loadAll()
 }
 
