@@ -182,7 +182,34 @@ a { text-decoration:none; color:blue; }
 <thead>
 <tr>
 <th>Name</th>
-<th>Rank</th>
+<th>
+          Rank 
+          <button onclick="toggleDropdown('rankFilterDropdown')">▼</button>
+          <div id="rankFilterDropdown" class="dropdown" style="display:none;">
+            <label><input type="checkbox" class="filterPosition" value="Master" checked onchange="loadAll()"> Master</label>
+            <label><input type="checkbox" class="filterPosition" value="C/O" checked onchange="loadAll()"> C/O</label>
+            <label><input type="checkbox" class="filterPosition" value="2/O" checked onchange="loadAll()"> 2/O</label>
+            <label><input type="checkbox" class="filterPosition" value="3/O" checked onchange="loadAll()"> 3/O</label>
+            <label><input type="checkbox" class="filterPosition" value="J/O" checked onchange="loadAll()"> J/O</label>
+            <label><input type="checkbox" class="filterPosition" value="C/E" checked onchange="loadAll()"> C/E</label>
+            <label><input type="checkbox" class="filterPosition" value="2/E" checked onchange="loadAll()"> 2/E</label>
+            <label><input type="checkbox" class="filterPosition" value="3/E" checked onchange="loadAll()"> 3/E</label>
+            <label><input type="checkbox" class="filterPosition" value="4/E" checked onchange="loadAll()"> 4/E</label>
+            <label><input type="checkbox" class="filterPosition" value="J/E" checked onchange="loadAll()"> J/E</label>
+            <label><input type="checkbox" class="filterPosition" value="E/C" checked onchange="loadAll()"> E/C</label>
+            <label><input type="checkbox" class="filterPosition" value="ETO" checked onchange="loadAll()"> ETO</label>
+            <label><input type="checkbox" class="filterPosition" value="ETO assistance" checked onchange="loadAll()"> ETO assistance</label>
+            <label><input type="checkbox" class="filterPosition" value="Pumpman" checked onchange="loadAll()"> Pumpman</label>
+            <label><input type="checkbox" class="filterPosition" value="Bosun" checked onchange="loadAll()"> Bosun</label>
+            <label><input type="checkbox" class="filterPosition" value="AB" checked onchange="loadAll()"> AB</label>
+            <label><input type="checkbox" class="filterPosition" value="OS" checked onchange="loadAll()"> OS</label>
+            <label><input type="checkbox" class="filterPosition" value="Oiler" checked onchange="loadAll()"> Oiler</label>
+            <label><input type="checkbox" class="filterPosition" value="Wiper" checked onchange="loadAll()"> Wiper</label>
+            <label><input type="checkbox" class="filterPosition" value="C/Cook" checked onchange="loadAll()"> C/Cook</label>
+            <label><input type="checkbox" class="filterPosition" value="Messman" checked onchange="loadAll()"> Messman</label>
+            <label><input type="checkbox" class="filterPosition" value="Fitter" checked onchange="loadAll()"> Fitter</label>
+            <label><input type="checkbox" class="filterPosition" value="Painter" checked onchange="loadAll()"> Painter</label>
+            <!-- добавь остальные должности по аналогии -->
 <th>Status</th>
 <th>Contract History</th>
 <th>Interviews</th>
@@ -244,6 +271,20 @@ function calculateServiceDays(allPositions) {
     const end = pos.disembarkation_date ? new Date(pos.disembarkation_date) : new Date()
     let totalDays = Math.floor((end - start) / (1000*60*60*24)) + 1
 
+    // инициализация перед суммированием
+    function toggleDropdown(id){
+  const dd = document.getElementById(id)
+  dd.style.display = dd.style.display === "block" ? "none" : "block"
+}
+
+// закрываем dropdown при клике вне области
+document.addEventListener("click", e=>{
+  ["rankFilterDropdown","statusFilterDropdown"].forEach(id=>{
+    const dd = document.getElementById(id)
+    if(dd && !e.target.closest(`#${id}`) && !e.target.closest("button")) dd.style.display="none"
+  })
+})
+    
     // инициализация перед суммированием
     if(!experience[position]) experience[position] = {years:0, months:0, days:0}
 
@@ -571,6 +612,20 @@ async function loadAll() {
         </div>
       `).join("<br>") || "-"
 
+    // ---------------- Filter ----------------
+    const showOnboard = document.getElementById("filterOnboard")?.checked
+const showAshore = document.getElementById("filterAshore")?.checked
+const checkedPositions = Array.from(document.querySelectorAll(".filterPosition"))
+  .filter(cb => cb.checked)
+  .map(cb => cb.value)
+
+    let filteredSeafarers = allSeafarers.filter(s=>{
+  const activeService = seaService?.some(ss=>ss.seafarer_id===s.id && (!ss.disembarkation_date || ss.disembarkation_date===""))
+  const statusOk = (activeService && showOnboard) || (!activeService && showAshore)
+  const positionOk = checkedPositions.includes(s.rank)
+  const searchOk = s.name.toLowerCase().includes(searchValue) || s.rank.toLowerCase().includes(searchValue)
+  return statusOk && positionOk && searchOk
+})
     // ---------------- OFFICE COMMENTS ----------------
     // Получаем все комментарии офиса для текущего моряка
 const { data: officeComments } = await client
